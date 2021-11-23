@@ -7,6 +7,7 @@
 int size_of_double_A = sizeof(double);
 double zero_A = 0;
 double one_A = 1.0;
+double two_A = 2.0;
 
 void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int layer_count, int *activation_values, int *hidden_sizes, int total_hidden_count, int bias_count, int weights_count, int input_count, int output_count, double *weights_values) {
   double* hidden_values_layers_train = (double*) malloc((line_count_train * input_count + total_hidden_count + output_count) * size_of_double_A);
@@ -21,17 +22,20 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   double diff_validate, avg_diff_validate, prev_avg_diff_validate;
   double change_coefficient, cycles_remaining_current;
   
-  double cycles_remaining_sum = zero_A;
-  double cycles_remaining_average = zero_A;
-  double total_cycles_sum = zero_A;
+  double cycles_remaining_sum1 = zero_A;
+  double cycles_remaining_average1 = zero_A;
+  double cycles_remaining_sum2 = zero_A;
+  double cycles_remaining_average2 = zero_A;
 
-  int cycle = zero_A;
-  
-  int average_size = 10;
+  int average_size1 = 50;
+  int average_size2 = 5;
 
-  double* prev_cycles_remaining = (double*) malloc(average_size * size_of_double_A);
+  double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double_A);
+  double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double_A);
 
   int minimum_reached = zero_A;
+
+  int cycle = zero_A;
 
   memcpy(hidden_values_layers_train, input_values_train, line_count_train*input_count*size_of_double_A);
   memcpy(hidden_values_layers_validate, input_values_validate, line_count_validate*input_count*size_of_double_A);
@@ -40,7 +44,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
 
   avg_diff_train = min_diff;
 
-  while (avg_diff_train >= min_diff && (minimum_reached == zero_A || (cycles == -1 || cycle < cycles))) {
+  while (avg_diff_train >= min_diff && (minimum_reached == zero_A && (cycles == -1 || cycle < cycles))) {
     avg_diff_train = zero_A;
     avg_diff_validate = zero_A;
 
@@ -66,38 +70,45 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
 
     for(int line_num_validate = zero_A; line_num_validate < line_count_validate; line_num_validate++){
       forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_validate, weights_values);
+      
       diff_validate = varyfind(line_count_validate, line_num_validate, input_count, total_hidden_count, output_count, target_values_validate, hidden_values_layers_validate);
-
       avg_diff_validate += diff_validate;
     }
 
     avg_diff_train /= (double) line_count_train;
     avg_diff_validate /= (double) line_count_validate;
 
-    if(cycle > average_size){
-      cycles_remaining_average = cycles_remaining_sum/average_size;
+    if(cycle > average_size2){
+      cycles_remaining_average2 = cycles_remaining_sum2/average_size2;
+      cycles_remaining_sum2 -= prev_cycles_remaining2[0];
+    }
 
-      if(cycles_remaining_average < total_cycles_sum/cycle){
+    if(cycle > average_size1){
+      cycles_remaining_average1 = cycles_remaining_sum1/average_size1;
+
+      if(cycles_remaining_average2 < 0.9999*cycles_remaining_average1){
         minimum_reached = one_A;
       }
 
-      cycles_remaining_sum -= prev_cycles_remaining[0];
+      cycles_remaining_sum1 -= prev_cycles_remaining1[0];
     }
 
     if(cycle > zero_A){
-      cycles_remaining_current = (prev_avg_diff_train+prev_avg_diff_validate)/(avg_diff_train+avg_diff_validate);
-      cycles_remaining_sum += cycles_remaining_current;
-      total_cycles_sum += cycles_remaining_current;
+      cycles_remaining_current = ((prev_avg_diff_train/avg_diff_train)+(prev_avg_diff_validate/avg_diff_validate))/two_A;
+      cycles_remaining_sum1 += cycles_remaining_current;
+      cycles_remaining_sum2 += cycles_remaining_current;
 
-      for(int i = zero_A; i < average_size-1; i++) prev_cycles_remaining[i] = prev_cycles_remaining[i+1];
+      for(int i = zero_A; i < average_size1-1; i++) prev_cycles_remaining1[i] = prev_cycles_remaining1[i+1];
+      for(int i = zero_A; i < average_size2-1; i++) prev_cycles_remaining2[i] = prev_cycles_remaining2[i+1];
 
-      prev_cycles_remaining[average_size-1] = cycles_remaining_current;
+      prev_cycles_remaining1[average_size1-1] = cycles_remaining_current;
+      prev_cycles_remaining2[average_size2-1] = cycles_remaining_current;
     }
 
     prev_avg_diff_train = avg_diff_train;
     prev_avg_diff_validate = avg_diff_validate;
 
-    printf("%.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average);
+    printf("%.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2);
     
     cycle++;
   }
@@ -109,6 +120,9 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
 
   free(diff_values);
   free(prev_diff_values);
+
+  free(prev_cycles_remaining1);
+  free(prev_cycles_remaining2);
 }
 
 void test(int line_count, double *input_values, double *output_values, int layer_count, int *activate_values, int *hidden_sizes, int total_hidden_count, int bias_count, int weights_count, int input_count, int output_count, double *weights_values){
