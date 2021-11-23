@@ -108,7 +108,7 @@ class Model:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]
+                self.activation_values = [4 for i in range(12)]
 
                 if softmax:
                     self.activation_values += [100]
@@ -162,7 +162,7 @@ class Model:
 
         if self.normaliser_depth > 0:
             self.NModel = Model()
-            self.NModel.load(self.model_name + "/NORMALISER", 1, self.output_count, 6, self.output_count, 3, [4,4,4], -1, 0.0003, 50, False, self.normaliser_depth-1, softmax)
+            self.NModel.load(model_name=(self.model_name + "/NORMALISER"), bias_count=1, input_count=self.output_count, hidden_count=6, output_count=self.output_count, layer_count=4, activation_values=[4,4,4,4], min_diff=-1, learning_rate=0.000001, cycles=100, hidden_shaped=False, normaliser_depth=self.normaliser_depth-1, softmax=False)
 
             self.NData = Data(self.NModel.input_count)
         
@@ -274,14 +274,7 @@ class Model:
         if self.normaliser_depth > 0:
             self.test(Data, test_mode=False)
 
-            midpoint_index = int((len(self.output_values)/self.output_count)/2)*self.output_count
-
-            normaliser_input_values_train = self.output_values[:midpoint_index]
-            normaliser_target_values_train = Data.target_values_validate[:midpoint_index]
-            normaliser_input_values_validate = self.output_values
-            normaliser_target_values_validate = Data.target_values_validate
-
-            self.NData.load(normaliser_input_values_train, normaliser_target_values_train, normaliser_input_values_validate, normaliser_target_values_validate, [], [])
+            self.NData.load(self.output_values, Data.target_values_validate, self.output_values, Data.target_values_validate, [], [])
 
             self.NModel.train(self.NData)
     
@@ -359,7 +352,7 @@ class Model:
         if self.normaliser_depth > 0 and test_mode:
             self.NData.load([], [], [], [], self.output_values, [])
 
-            self.NModel.test(self.NData)
+            self.NModel.test(self.NData, test_mode=True)
 
             self.output_values = self.NModel.output_values
 
@@ -370,7 +363,7 @@ class Model:
             self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
 
         Data.load([], [], self.recursive_output_values[-self.input_count:], [])
-        self.test(Data)
+        self.test(Data, test_mode=True)
         
         pooled_output_values = self.output_values.copy()
 
@@ -378,7 +371,7 @@ class Model:
             self.recursive_output_values += pooled_output_values[:feedback_count]
 
             Data.load([], [], self.recursive_output_values[-self.input_count:], [])
-            self.test(Data)
+            self.test(Data, test_mode=True)
 
             pooled_output_values = pooled_output_values[feedback_count:]
             pooled_output_values += self.output_values[-feedback_count:]
