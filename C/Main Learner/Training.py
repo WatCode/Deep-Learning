@@ -10,4 +10,4 @@ Data0 = Data(Model0.input_count)
 Data0.extractall(data_name)
 
 Model0.train(Data0)
-Model0.save()
+Model0.save()hello
