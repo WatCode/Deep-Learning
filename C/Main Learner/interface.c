@@ -28,7 +28,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   double cycles_remaining_average2 = zero_A;
 
   int average_size1 = 50;
-  int average_size2 = 5;
+  int average_size2 = 10;
 
   double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double_A);
   double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double_A);
@@ -86,7 +86,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     if(cycle > average_size1){
       cycles_remaining_average1 = cycles_remaining_sum1/average_size1;
 
-      if(cycles_remaining_average2 < cycles_remaining_average1 && cycles_remaining_average2 < one_A){
+      if(cycles_remaining_average2 < 0.999*cycles_remaining_average1 && cycles_remaining_average2 < one_A){
         minimum_reached = one_A;
       }
 
