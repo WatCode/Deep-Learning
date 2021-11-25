@@ -108,7 +108,7 @@ class Model:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(4)]
+                self.activation_values = [4 for i in range(6)]
 
                 if softmax:
                     self.activation_values += [100]
@@ -362,7 +362,7 @@ class Model:
         for i in range(int(len(Data.target_values_test)/self.output_count)):
             self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
 
-        Data.load([], [], self.recursive_output_values[-self.input_count:], [])
+        Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
         self.test(Data, test_mode=True)
         
         pooled_output_values = self.output_values.copy()
@@ -370,7 +370,7 @@ class Model:
         for i in range(loop_count-1):
             self.recursive_output_values += pooled_output_values[:feedback_count]
 
-            Data.load([], [], self.recursive_output_values[-self.input_count:], [])
+            Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
             self.test(Data, test_mode=True)
 
             pooled_output_values = pooled_output_values[feedback_count:]

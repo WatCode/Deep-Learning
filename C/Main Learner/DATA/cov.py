@@ -30,17 +30,17 @@ for line in filer[1:]:
             finally:
                 iso_data[line_split[0]][heading_list[i]].append(value)
 
-target_headings = ["new_cases_smoothed_per_million","new_deaths_smoothed_per_million","new_vaccinations_smoothed_per_million"]
+target_headings = ["new_cases_smoothed_per_million","new_deaths_smoothed_per_million"]
 
 normalised_iso_data = {iso:{heading:[] for heading in target_headings} for iso in iso_list}
 
 for iso in iso_list:
     for heading in target_headings:
         for i in range(len(iso_data[iso][heading])-1):
-            if iso_data[iso][heading][i] != 0:
-                normalised_iso_data[iso][heading].append(iso_data[iso][heading][i+1]/iso_data[iso][heading][i])
+            if iso_data[iso][heading][i] == 0 or iso_data[iso][heading][i+1] == 0:
+                normalised_iso_data[iso][heading].append(Decimal(1))
             else:
-                normalised_iso_data[iso][heading].append(Decimal(0))
+                normalised_iso_data[iso][heading].append(iso_data[iso][heading][i+1]/iso_data[iso][heading][i])
             
 input_size = 150
 output_size = 14
