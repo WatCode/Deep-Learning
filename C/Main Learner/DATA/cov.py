@@ -6,7 +6,7 @@ filer = open("COVRAW.txt", "r").read().split("\n")
 
 heading_list = filer[0].split(",")
 
-iso_list = ["ZAF", "CAN"]
+iso_list = ["USA","CAN","ZAF","ESP"]
 iso_data = {iso:{heading:[] for heading in heading_list} for iso in iso_list}
 
 iso_lengths = {iso:0 for iso in iso_list}
@@ -30,7 +30,7 @@ for line in filer[1:]:
             finally:
                 iso_data[line_split[0]][heading_list[i]].append(value)
 
-target_headings = ["new_cases_smoothed_per_million","new_deaths_smoothed_per_million"]
+target_headings = ["new_cases_smoothed_per_million","new_deaths_smoothed_per_million","new_people_vaccinated_smoothed_per_hundred"]
 
 normalised_iso_data = {iso:{heading:[] for heading in target_headings} for iso in iso_list}
 
@@ -57,13 +57,15 @@ for iso in iso_list:
                     to_write_train += str(normalised_iso_data[iso][heading][i+j]) + ","
                 else:
                     to_write_validate += str(normalised_iso_data[iso][heading][i+j]) + ","
-                to_write_test += str(normalised_iso_data[iso][heading][i+j]) + ","
+                if iso == iso_list[0]:
+                    to_write_test += str(normalised_iso_data[iso][heading][i+j]) + ","
 
         if i%2 == 0:
             to_write_train = to_write_train[:-1] + ":"
         else:
             to_write_validate = to_write_validate[:-1] + ":"
-        to_write_test = to_write_test[:-1] + ":"
+        if iso == iso_list[0]:
+            to_write_test = to_write_test[:-1] + ":"
 
         for j in range(output_size):
             for heading in target_headings:
@@ -78,7 +80,8 @@ for iso in iso_list:
             to_write_train = to_write_train[:-1] + "\n"
         else:
             to_write_validate = to_write_validate[:-1] + "\n"
-        to_write_test = to_write_test[:-1] + "\n"
+        if iso == iso_list[0]:
+            to_write_test = to_write_test[:-1] + "\n"
     
 filew = open("COVTRAIN.txt", "w")
 filew.write(to_write_train[:-1])
