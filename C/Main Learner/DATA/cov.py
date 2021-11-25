@@ -6,7 +6,7 @@ filer = open("COVRAW.txt", "r").read().split("\n")
 
 heading_list = filer[0].split(",")
 
-iso_list = ["ZAF"]
+iso_list = ["ZAF", "CAN"]
 iso_data = {iso:{heading:[] for heading in heading_list} for iso in iso_list}
 
 iso_lengths = {iso:0 for iso in iso_list}
@@ -42,8 +42,8 @@ for iso in iso_list:
             else:
                 normalised_iso_data[iso][heading].append(iso_data[iso][heading][i+1]/iso_data[iso][heading][i])
             
-input_size = 150
-output_size = 14
+input_size = 200
+output_size = 7
 
 to_write_train = ""
 to_write_validate = ""
@@ -57,11 +57,12 @@ for iso in iso_list:
                     to_write_train += str(normalised_iso_data[iso][heading][i+j]) + ","
                 else:
                     to_write_validate += str(normalised_iso_data[iso][heading][i+j]) + ","
-                
                 to_write_test += str(normalised_iso_data[iso][heading][i+j]) + ","
 
-        to_write_train = to_write_train[:-1] + ":"
-        to_write_validate = to_write_validate[:-1] + ":"
+        if i%2 == 0:
+            to_write_train = to_write_train[:-1] + ":"
+        else:
+            to_write_validate = to_write_validate[:-1] + ":"
         to_write_test = to_write_test[:-1] + ":"
 
         for j in range(output_size):
@@ -73,8 +74,10 @@ for iso in iso_list:
                 
                 to_write_test += str(normalised_iso_data[iso][heading][i+input_size+j]) + ","
         
-        to_write_train = to_write_train[:-1] + "\n"
-        to_write_validate = to_write_validate[:-1] + "\n"
+        if i%2 == 0:
+            to_write_train = to_write_train[:-1] + "\n"
+        else:
+            to_write_validate = to_write_validate[:-1] + "\n"
         to_write_test = to_write_test[:-1] + "\n"
     
 filew = open("COVTRAIN.txt", "w")
