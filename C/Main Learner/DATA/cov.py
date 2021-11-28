@@ -6,7 +6,7 @@ filer = open("COVRAW.txt", "r").read().split("\n")
 
 heading_list = filer[0].split(",")
 
-iso_list = ["ZAF"]
+iso_list = ["OWID_WRL"]
 iso_data = {iso:{heading:[] for heading in heading_list} for iso in iso_list}
 
 iso_lengths = {iso:0 for iso in iso_list}
