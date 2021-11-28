@@ -361,6 +361,8 @@ class Model:
         
         for i in range(int(len(Data.target_values_test)/self.output_count)):
             self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
+            
+        self.recursive_output_values += Data.target_values_test[-self.output_count+feedback_count:]
 
         Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
         self.test(Data, test_mode=True)

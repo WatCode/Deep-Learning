@@ -36,8 +36,8 @@ normalised_iso_data = {iso:{heading:[] for heading in target_headings} for iso i
 
 for iso in iso_list:
     for heading in target_headings:
-        for i in range(len(iso_data[iso][heading])-1):
-            normalised_iso_data[iso][heading].append(iso_data[iso][heading][i+1]-iso_data[iso][heading][i])
+        for i in range(len(iso_data[iso][heading])):
+            normalised_iso_data[iso][heading].append(iso_data[iso][heading][i])
             
 input_size = 200
 output_size = 7
@@ -47,7 +47,7 @@ to_write_validate = ""
 to_write_test = ""
 
 for iso in iso_list:
-    for i in range(iso_lengths[iso]-input_size-output_size-1):
+    for i in range(iso_lengths[iso]-input_size-output_size):
         for j in range(input_size):
             for heading in target_headings:
                 if i%2 == 0:
