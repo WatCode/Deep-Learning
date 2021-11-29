@@ -9,7 +9,7 @@ double zero_A = 0;
 double one_A = 1.0;
 double two_A = 2.0;
 
-void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int layer_count, int *activation_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, double *weights_values) {
+void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, double *weights_values) {
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
   
@@ -52,8 +52,8 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     avg_diff_validate = zero_A;
 
     for (int line_num_train = zero_A; line_num_train < line_count_train; line_num_train++) {
-      forward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_train, weights_values);
-      backward(line_count_train, line_num_train, activation_values, hidden_sizes, hidden_count, bias_count, weight_count, learning_rate_values[line_num_train], layer_count, input_count, output_count, hidden_values_layers_train, target_values_train, weights_values);
+      forward(line_count_train, line_num_train, activate_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_train, weights_values);
+      backward(line_count_train, line_num_train, activate_values, hidden_sizes, hidden_count, bias_count, weight_count, learning_rate_values[line_num_train], layer_count, input_count, output_count, hidden_values_layers_train, target_values_train, weights_values);
       
       diff_train = varyfind(line_count_train, line_num_train, input_count, hidden_count, output_count, target_values_train, hidden_values_layers_train);
       avg_diff_train += diff_train;
@@ -72,7 +72,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     }
 
     for(int line_num_validate = zero_A; line_num_validate < line_count_validate; line_num_validate++){
-      forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_validate, weights_values);
+      forward(line_count_validate, line_num_validate, activate_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_validate, weights_values);
       
       diff_validate = varyfind(line_count_validate, line_num_validate, input_count, hidden_count, output_count, target_values_validate, hidden_values_layers_validate);
       avg_diff_validate += diff_validate;

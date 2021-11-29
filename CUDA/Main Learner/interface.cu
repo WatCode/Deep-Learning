@@ -342,7 +342,7 @@ __host__ void backward(float learning_rate, int line_count, int line_num, int *a
 	}
 }
 
-__host__ void train(float min_diff, float learning_rate, int line_count_train, float *input_values_train, float *target_values_train, int line_count_test, float *input_values_test, float *target_values_test, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, float *weight_values) {
+__host__ void train(float min_diff, float learning_rate, int cycles, int line_count_train, float *input_values_train, float *target_values_train, int line_count_test, float *input_values_test, float *target_values_test, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, float *weight_values) {
     int input_count = hidden_sizes[0];
     int output_count = hidden_sizes[layer_count+1];
 
@@ -403,7 +403,7 @@ __host__ void train(float min_diff, float learning_rate, int line_count_train, f
 
     int cycle = 0;
 
-    while (cycle < 20 && avg_diff_train >= min_diff) {
+    while ((cycles == -1 || cycle < cycles) && avg_diff_train >= min_diff) {
         avg_diff_train = 0;
 
         for (int line_num_train = h_zero; line_num_train < line_count_train; line_num_train++) {

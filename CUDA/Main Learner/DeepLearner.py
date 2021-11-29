@@ -1,11 +1,13 @@
 from random import *
-from time import *
+from decimal import *
 from math import *
 from ctypes import *
 import numpy as np
 import os
 
-clib = CDLL("./deep.dll")
+getcontext().prec = 64
+
+clib = CDLL("./deep.so")
 
 def findsize(hidden_sizes, bias_count):
     total_size = 0
@@ -35,7 +37,7 @@ def createsizes(hidden_count, layer_count):
     return hidden_sizes
 
 def findmean(values):
-    mean = sum(values)/float(len(values))
+    mean = sum(values)/Decimal(len(values))
 
     return mean
 
@@ -45,8 +47,8 @@ def finddeviation(values, mean):
     for value in values:
         variance += (value-mean)**2
     
-    variance /= float(len(values))
-    deviation = variance**float(0.5)
+    variance /= Decimal(len(values))
+    deviation = variance**Decimal(0.5)
 
     return deviation
 
@@ -54,9 +56,12 @@ def varyfind(output_values, target_values):
     diff = 0
 
     for i in range(len(output_values)):
-        diff += abs(output_values[i]-target_values[i])
+        if target_values[i] != 0:
+            diff += abs((output_values[i]-target_values[i])/target_values[i])
+        else:
+            diff += abs(output_values[i]-target_values[i])
 
-    return diff/float(len(output_values))
+    return diff/Decimal(len(output_values))
 
 class Model:
     def __init__(self):
@@ -65,9 +70,9 @@ class Model:
         self.normaliser_depth = 0
         
         self.bias_count = 0
-        self.weights_count = 0
+        self.weight_count = 0
         self.input_count = 0
-        self.total_hidden_count = 0
+        self.hidden_count = 0
         self.output_count = 0
         self.layer_count = 0
         self.activation_values = []
@@ -77,9 +82,9 @@ class Model:
         self.recursive_output_values = []
 
         self.c_bias_count = 0
-        self.c_weights_count = 0
+        self.c_weight_count = 0
         self.c_input_count = 0
-        self.c_total_hidden_count = 0
+        self.c_hidden_count = 0
         self.c_output_count = 0
         self.c_layer_count = 0
         self.c_activation_values = []
@@ -124,9 +129,9 @@ class Model:
             
             self.hidden_sizes_values = [self.input_count]+self.hidden_sizes_values+[self.output_count]
 
-            self.total_hidden_count = sum(self.hidden_sizes_values[1:-1])
+            self.hidden_count = sum(self.hidden_sizes_values[1:-1])
 
-            self.weights_count = findsize(self.hidden_sizes_values, self.bias_count)
+            self.weight_count = findsize(self.hidden_sizes_values, self.bias_count)
 
             self.randomiseweights()
         else:
@@ -140,9 +145,9 @@ class Model:
         self.c_cycles = c_int(self.cycles)
         
         self.c_bias_count = c_int(self.bias_count)
-        self.c_weights_count = c_int(self.weights_count)
+        self.c_weight_count = c_int(self.weight_count)
         self.c_input_count = c_int(self.input_count)
-        self.c_total_hidden_count = c_int(self.total_hidden_count)
+        self.c_hidden_count = c_int(self.hidden_count)
         self.c_output_count = c_int(self.output_count)
         self.c_layer_count = c_int(self.layer_count)
 
@@ -157,9 +162,9 @@ class Model:
 
         if self.normaliser_depth > 0:
             self.NModel = Model()
-            self.NModel.load(self.model_name + "/NORMALISER", 1, self.output_count, 6, self.output_count, 3, [4,4,4], -1, -1, -1, False, self.normaliser_depth-1, softmax)
+            self.NModel.load(model_name=(self.model_name + "/NORMALISER"), bias_count=1, input_count=self.output_count, hidden_count=6, output_count=self.output_count, layer_count=4, activation_values=[4,4,4,4], min_diff=-1, learning_rate=0.00001, cycles=100, hidden_shaped=False, normaliser_depth=self.normaliser_depth-1, softmax=False)
 
-            self.NData = Data(self.NModel)
+            self.NData = Data(self.NModel.input_count)
         
         if new_model:
             self.save()
@@ -167,27 +172,29 @@ class Model:
     def save(self):
         if "nan" not in [str(value).lower() for value in self.weights_values]:
             config_file = open("./" + self.model_name + "/config.txt", "w")
-            config_file.write(str(self.normaliser_depth) + "," + str(self.bias_count) + "," + str(self.weights_count) + "," + str(self.layer_count) + "\n" + ",".join([str(value) for value in self.hidden_sizes_values]) + "\n" + ",".join([str(value) for value in self.activation_values]))
+            config_file.write(str(self.normaliser_depth) + "," + str(self.bias_count) + "," + str(self.weight_count) + "," + str(self.layer_count) + "\n" + ",".join([str(value) for value in self.hidden_sizes_values]) + "\n" + ",".join([str(value) for value in self.activation_values]))
             config_file.close()
 
-            self.weights_values = [float(value) for value in self.c_weights_values]
-
+            self.weights_values = [Decimal(value) for value in self.c_weights_values]
             weight_index = 0
 
             for layer_num in range(self.layer_count+1):
+                weight_file = open("./" + self.model_name + "/hidden" + str(layer_num) + ".txt", "w")
                 to_write = ""
 
-                for i in range(self.hidden_sizes_values[layer_num+1]):
-                    to_write += ",".join([str(value) for value in self.weights_values[weight_index:weight_index+(self.hidden_sizes_values[layer_num]+self.bias_count)]]) + "\n"
-                    
-                    weight_index += (self.hidden_sizes_values[layer_num]+self.bias_count)
+                for i in range(self.hidden_sizes_values[layer_num]+self.bias_count):
+                    for j in range(self.hidden_sizes_values[layer_num+1]):
+                        to_write += str(self.weights_values[weight_index]) + ","
 
-                weight_file = open("./" + self.model_name + "/hidden" + str(layer_num) + ".txt", "w")
+                        weight_index += 1
+                    
+                    to_write = to_write[:-1] + "\n"
+
                 weight_file.write(to_write[:-1])
                 weight_file.close()
-            
-            if self.normaliser_depth > 0:
-                self.NModel.save()
+        
+        if self.normaliser_depth > 0:
+            self.NModel.save()
     
     def get(self):
         config_file = open("./" + self.model_name + "/config.txt", "r").read()
@@ -196,7 +203,7 @@ class Model:
         config_data = config_split[0].split(",")
         self.normaliser_depth = int(config_data[0])
         self.bias_count = int(config_data[1])
-        self.weights_count = int(config_data[2])
+        self.weight_count = int(config_data[2])
         self.layer_count = int(config_data[3])
 
         self.hidden_sizes_values = [int(value) for value in config_split[1].split(",")]
@@ -204,7 +211,7 @@ class Model:
         self.input_count = self.hidden_sizes_values[0]
         self.output_count = self.hidden_sizes_values[-1]
 
-        self.total_hidden_count = sum(self.hidden_sizes_values[1:-1])
+        self.hidden_count = sum(self.hidden_sizes_values[1:-1])
 
         self.activation_values = [int(value) for value in config_split[2].split(",")]
 
@@ -214,17 +221,17 @@ class Model:
             weights_file = open("./" + self.model_name + "/hidden" + str(layer_num) + ".txt", "r").read()
             weights_split = weights_file.split("\n")
 
-            for i in range(self.hidden_sizes_values[layer_num+1]):
-                self.weights_values += [float(value) for value in weights_split[i].split(",")]
+            for i in range(self.hidden_sizes_values[layer_num]+self.bias_count):
+                self.weights_values += [Decimal(value) for value in weights_split[i].split(",")]
     
     def randomiseweights(self):
         self.weights_values = []
         
         for layer_num in range(self.layer_count+1):
-            current_weights = np.random.normal(float(1/self.hidden_sizes_values[layer_num]), float(self.hidden_sizes_values[layer_num+1]/(self.hidden_sizes_values[layer_num]**2)), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
+            current_weights = np.random.normal(Decimal(1/self.hidden_sizes_values[layer_num]), Decimal(self.hidden_sizes_values[layer_num+1]/(self.hidden_sizes_values[layer_num]**2)), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
             shuffle(current_weights)
 
-            self.weights_values += [float(values) for values in current_weights]
+            self.weights_values += [Decimal(values) for values in current_weights]
     
     def train(self, Data):
         if self.learning_rate == -1:
@@ -232,21 +239,21 @@ class Model:
             temp_c_cycles = c_int(temp_cycles)
             temp_min_diff = -1
             temp_c_min_diff = c_float(temp_min_diff)
-            self.learning_rate = float(0)
+            self.learning_rate = Decimal(0)
 
             fault = False
 
             for i in range(64):
                 if fault:
-                    self.learning_rate -= float(1)/float(2)**(i+1)
+                    self.learning_rate -= Decimal(1)/Decimal(2)**(i+1)
                 else:
-                    self.learning_rate += float(1)/float(2)**(i+1)
+                    self.learning_rate += Decimal(1)/Decimal(2)**(i+1)
 
                 self.c_learning_rate = c_float(self.learning_rate)
 
                 backup_weights_values = self.weights_values.copy()
-                clib.train(self.c_min_diff, self.c_learning_rate, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_weights_values)
-                self.weights_values = [float(value) for value in self.c_weights_values]
+                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values)
+                self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
                 if "nan" in [str(value).lower() for value in self.weights_values] or self.weights_values == backup_weights_values:
                     fault = True
@@ -257,24 +264,17 @@ class Model:
                 weights_values_seq = c_float*len(self.weights_values)
                 self.c_weights_values = weights_values_seq(*self.weights_values)
             
-            self.learning_rate *= float("0." + 16*"9")
+            self.learning_rate *= Decimal("0." + 16*"9")
             self.c_learning_rate = c_float(self.learning_rate)
             
-        clib.train(self.c_min_diff, self.c_learning_rate, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_weights_values)
+        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values)
 
-        self.weights_values = [float(value) for value in self.c_weights_values]
+        self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
         if self.normaliser_depth > 0:
-            self.test(Data, False)
+            self.test(Data, test_mode=False)
 
-            midpoint_index = int((len(self.output_values)/self.output_count)/2)*self.output_count
-
-            normaliser_input_values_train = self.output_values[:midpoint_index]
-            normaliser_target_values_train = Data.target_values_test[:midpoint_index]
-            normaliser_input_values_test = self.output_values
-            normaliser_target_values_test = Data.target_values_test
-
-            self.NData.load(normaliser_input_values_train, normaliser_target_values_train, normaliser_input_values_test, normaliser_target_values_test)
+            self.NData.load(self.output_values, Data.target_values_validate, self.output_values, Data.target_values_validate, [], [])
 
             self.NModel.train(self.NData)
     
@@ -293,9 +293,9 @@ class Model:
                 weights_values_seq = c_float*len(weights_values)
                 self.c_weights_values = weights_values_seq(*weights_values)
 
-                self.test(Data, False)
+                self.test(Data, test_mode=False)
 
-                diff = varyfind(self.output_values, Data.target_values_test)
+                diff = varyfind(self.output_values, Data.target_values_validate)
                 diff_values.append(diff)
 
                 weights_values_set[diff] = weights_values
@@ -303,95 +303,135 @@ class Model:
             mean = findmean(diff_values)
             deviation = finddeviation(diff_values, mean)
 
-            weights_values_sum = [float(0) for j in range(self.weights_count)]
+            weights_values_sum = [Decimal(0) for j in range(self.weight_count)]
             weights_values_count = 0
             avg_diff = 0
 
             for diff in diff_values:
-                if diff <= mean-deviation*float(deviation_coefficient):
-                    weights_values_sum = [weights_values_sum[j]+weights_values_set[diff][j] for j in range(self.weights_count)]
+                if diff <= mean-deviation*Decimal(deviation_coefficient):
+                    weights_values_sum = [weights_values_sum[j]+weights_values_set[diff][j] for j in range(self.weight_count)]
                     weights_values_count += 1
                     avg_diff += diff
 
                 weights_values_list.remove(weights_values_set[diff])
                 weights_values_set.pop(diff)
             
-            avg_diff /= float(weights_values_count)
+            avg_diff /= Decimal(weights_values_count)
             print(avg_diff)
             print(weights_values_count)
             
-            for j in range(self.weights_count):
-                weights_values_sum[j] /= float(weights_values_count)
+            for j in range(self.weight_count):
+                weights_values_sum[j] /= Decimal(weights_values_count)
             
             for j in range(pool_size):
-                weights_values_list.append([value*float(1.0+random()/1000.0) for value in weights_values_sum])
+                weights_values_list.append([value*Decimal(1.0+random()/1000.0) for value in weights_values_sum])
         
         self.weights_values = weights_values_sum
 
     def test(self, Data, test_mode=True):
+        if test_mode:
+            line_count = Data.line_count_test
+            c_line_count = Data.c_line_count_test
+            
+            c_input_values = Data.c_input_values_test
+        else:
+            line_count = Data.line_count_validate
+            c_line_count = Data.c_line_count_validate
+            
+            c_input_values = Data.c_input_values_validate
+            
         self.output_values = []
 
-        self.c_output_values_seq = c_float*(Data.line_count_test*self.output_count)
+        self.c_output_values_seq = c_float*(line_count*self.output_count)
         self.c_output_values = self.c_output_values_seq(*self.output_values)
 
-        clib.test(Data.c_line_count_test, Data.c_input_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_weights_values, self.c_output_values)
+        clib.test(c_line_count, c_input_values, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values, self.c_output_values)
 
-        self.output_values = [float(value) for value in self.c_output_values]
+        self.output_values = [Decimal(value) for value in self.c_output_values]
 
         if self.normaliser_depth > 0 and test_mode:
-            self.NData.load([], [], self.output_values, [])
+            self.NData.load([], [], [], [], self.output_values, [])
 
-            self.NModel.test(self.NData)
+            self.NModel.test(self.NData, test_mode=True)
 
             self.output_values = self.NModel.output_values
 
-    def recursive_test(self, Data, feedback_count, loop_count):
-        self.recursive_output_values = Data.input_values_test[:self.input_count]+Data.target_values_test
+    def recursive_test(self, Data, loop_count, feedback_count):
+        self.recursive_output_values = Data.input_values_test[:self.input_count]
+        
+        for i in range(int(len(Data.target_values_test)/self.output_count)):
+            self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
+            
+        self.recursive_output_values += Data.target_values_test[-self.output_count+feedback_count:]
 
-        for i in range(loop_count):
-            Data.load([], [], self.recursive_output_values[-self.input_count:], [])
+        Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
+        self.test(Data, test_mode=True)
+        
+        pooled_output_values = self.output_values.copy()
 
-            self.test(Data)
+        for i in range(loop_count-1):
+            self.recursive_output_values += pooled_output_values[:feedback_count]
 
-            self.recursive_output_values += self.output_values
+            Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
+            self.test(Data, test_mode=True)
+
+            pooled_output_values = pooled_output_values[feedback_count:]
+            pooled_output_values += self.output_values[-feedback_count:]
+            pooled_output_values = [(pooled_output_values[i]+self.output_values[i])/Decimal(2) for i in range(self.output_count)]
+
+
 
 class Data:
-    def __init__(self, parent_model):
-        self.parent_model = parent_model
+    def __init__(self, input_count):
+        self.input_count = input_count
 
         self.line_count_train = 0
+        self.line_count_validate = 0
         self.line_count_test = 0
         self.input_values_train = []
         self.target_values_train = []
+        self.input_values_validate = []
+        self.target_values_validate = []
         self.input_values_test = []
         self.target_values_test = []
 
         self.c_line_count_train = 0
+        self.c_line_count_validate = 0
         self.c_line_count_test = 0
         self.c_input_values_train = []
         self.c_target_values_train = []
+        self.c_input_values_validate = []
+        self.c_target_values_validate = []
         self.c_input_values_test = []
         self.c_target_values_test = []
 
-    def load(self, input_values_train, target_values_train, input_values_test, target_values_test):
-        self.line_count_train = int(len(input_values_train)/self.parent_model.input_count)
-        self.line_count_test = int(len(input_values_test)/self.parent_model.input_count)
+    def load(self, input_values_train, target_values_train, input_values_validate, target_values_validate, input_values_test, target_values_test):
+        self.line_count_train = int(len(input_values_train)/self.input_count)
+        self.line_count_validate = int(len(input_values_validate)/self.input_count)
+        self.line_count_test = int(len(input_values_test)/self.input_count)
 
         self.input_values_train = input_values_train
         self.target_values_train = target_values_train
+        self.input_values_validate = input_values_validate
+        self.target_values_validate = target_values_validate
         self.input_values_test = input_values_test
         self.target_values_test = target_values_test
 
         self.c_line_count_train = c_int(self.line_count_train)
+        self.c_line_count_validate = c_int(self.line_count_validate)
         self.c_line_count_test = c_int(self.line_count_test)
 
         c_input_values_train_seq = c_float*len(input_values_train)
         c_target_values_train_seq = c_float*len(target_values_train)
+        c_input_values_validate_seq = c_float*len(input_values_validate)
+        c_target_values_validate_seq = c_float*len(target_values_validate)
         c_input_values_test_seq = c_float*len(input_values_test)
         c_target_values_test_seq = c_float*len(target_values_test)
 
         self.c_input_values_train = c_input_values_train_seq(*input_values_train)
         self.c_target_values_train = c_target_values_train_seq(*target_values_train)
+        self.c_input_values_validate = c_input_values_validate_seq(*input_values_validate)
+        self.c_target_values_validate = c_target_values_validate_seq(*target_values_validate)
         self.c_input_values_test = c_input_values_test_seq(*input_values_test)
         self.c_target_values_test = c_target_values_test_seq(*target_values_test)
     
@@ -405,13 +445,18 @@ class Data:
             for data_line in data_file:
                 data_split = data_line.split(":")
 
-                data_input += [float(value) for value in data_split[0].split(",")]
-                data_target += [float(value) for value in data_split[1].split(",")]
+                data_input += [Decimal(value) for value in data_split[0].split(",")]
+                data_target += [Decimal(value) for value in data_split[1].split(",")]
         finally:
             return data_input, data_target
         
     def extractall(self, data_name):
-        data_train = self.extract(data_name)
-        data_test = self.extract(data_name + "VALIDATION")
-
-        self.load(data_train[0], data_train[1], data_test[0], data_test[1])
+        data_train = self.extract(data_name + "TRAIN")
+        data_validate = self.extract(data_name + "VALIDATE")
+        
+        try:
+            data_test = self.extract(data_name + "TEST")
+        except:
+            data_test = ([], [])
+        finally:
+            self.load(data_train[0], data_train[1], data_validate[0], data_validate[1], data_test[0], data_test[1])

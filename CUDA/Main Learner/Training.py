@@ -1,17 +1,13 @@
 from DeepLearner import *
-import matplotlib.pyplot as plt
-from decimal import *
 
-getcontext().prec = 64
+data_name = input("Data name: ")
+model_name = input("Model name: ")
 
-data_name = input("Name of data: ")
-model_name = input("Name of model: ")
+Model0 = Model()
+Model0.load(model_name, min_diff=0.1, learning_rate=0.0000001, cycles=20, hidden_shaped=False, normaliser_depth=0)
 
-Model1 = Model()
-Model1.load(model_name, min_diff=0.01, learning_rate=0.00000001, cycles=-1, hidden_shaped=False, normaliser_depth=0)
+Data0 = Data(Model0.input_count)
+Data0.extractall(data_name)
 
-Data1 = Data(Model1)
-Data1.extractall(data_name)
-
-Model1.train(Data1)
-Model1.save()
+Model0.train(Data0)
+Model0.save()
