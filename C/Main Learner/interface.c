@@ -9,9 +9,12 @@ double zero_A = 0;
 double one_A = 1.0;
 double two_A = 2.0;
 
-void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int layer_count, int *activation_values, int *hidden_sizes, int total_hidden_count, int bias_count, int weights_count, int input_count, int output_count, double *weights_values) {
-  double* hidden_values_layers_train = (double*) malloc((line_count_train * input_count + total_hidden_count + output_count) * size_of_double_A);
-  double* hidden_values_layers_validate = (double*) malloc((line_count_validate * input_count + total_hidden_count + output_count) * size_of_double_A);
+void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int layer_count, int *activation_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, double *weights_values) {
+  int input_count = hidden_sizes[0];
+  int output_count = hidden_sizes[layer_count+1];
+  
+  double* hidden_values_layers_train = (double*) malloc((line_count_train * input_count + hidden_count + output_count) * size_of_double_A);
+  double* hidden_values_layers_validate = (double*) malloc((line_count_validate * input_count + hidden_count + output_count) * size_of_double_A);
 
   double* learning_rate_values = (double*) malloc(line_count_train * size_of_double_A);
 
@@ -50,9 +53,9 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
 
     for (int line_num_train = zero_A; line_num_train < line_count_train; line_num_train++) {
       forward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_train, weights_values);
-      backward(line_count_train, line_num_train, activation_values, hidden_sizes, total_hidden_count, bias_count, weights_count, learning_rate_values[line_num_train], layer_count, input_count, output_count, hidden_values_layers_train, target_values_train, weights_values);
+      backward(line_count_train, line_num_train, activation_values, hidden_sizes, hidden_count, bias_count, weight_count, learning_rate_values[line_num_train], layer_count, input_count, output_count, hidden_values_layers_train, target_values_train, weights_values);
       
-      diff_train = varyfind(line_count_train, line_num_train, input_count, total_hidden_count, output_count, target_values_train, hidden_values_layers_train);
+      diff_train = varyfind(line_count_train, line_num_train, input_count, hidden_count, output_count, target_values_train, hidden_values_layers_train);
       avg_diff_train += diff_train;
 
       change_coefficient = fabs((diff_values[line_num_train]-prev_diff_values[line_num_train])/(diff_train-diff_values[line_num_train]));
@@ -71,7 +74,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     for(int line_num_validate = zero_A; line_num_validate < line_count_validate; line_num_validate++){
       forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, hidden_values_layers_validate, weights_values);
       
-      diff_validate = varyfind(line_count_validate, line_num_validate, input_count, total_hidden_count, output_count, target_values_validate, hidden_values_layers_validate);
+      diff_validate = varyfind(line_count_validate, line_num_validate, input_count, hidden_count, output_count, target_values_validate, hidden_values_layers_validate);
       avg_diff_validate += diff_validate;
     }
 
@@ -125,9 +128,12 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   free(prev_cycles_remaining2);
 }
 
-void test(int line_count, double *input_values, double *output_values, int layer_count, int *activate_values, int *hidden_sizes, int total_hidden_count, int bias_count, int weights_count, int input_count, int output_count, double *weights_values){
-  double* hidden_values_layers = (double*) malloc((line_count * input_count + total_hidden_count + output_count) * size_of_double_A);
-  int hidden_neuron_dist = line_count * input_count + total_hidden_count;
+void test(int line_count, double *input_values, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, double *weights_values, double *output_values){
+  int input_count = hidden_sizes[0];
+  int output_count = hidden_sizes[layer_count+1];
+
+  double* hidden_values_layers = (double*) malloc((line_count * input_count + hidden_count + output_count) * size_of_double_A);
+  int hidden_neuron_dist = line_count * input_count + hidden_count;
 
   for(int i = zero_A; i < line_count * input_count; i++) hidden_values_layers[i] = input_values[i];
 

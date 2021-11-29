@@ -70,9 +70,9 @@ class Model:
         self.normaliser_depth = 0
         
         self.bias_count = 0
-        self.weights_count = 0
+        self.weight_count = 0
         self.input_count = 0
-        self.total_hidden_count = 0
+        self.hidden_count = 0
         self.output_count = 0
         self.layer_count = 0
         self.activation_values = []
@@ -82,9 +82,9 @@ class Model:
         self.recursive_output_values = []
 
         self.c_bias_count = 0
-        self.c_weights_count = 0
+        self.c_weight_count = 0
         self.c_input_count = 0
-        self.c_total_hidden_count = 0
+        self.c_hidden_count = 0
         self.c_output_count = 0
         self.c_layer_count = 0
         self.c_activation_values = []
@@ -129,9 +129,9 @@ class Model:
             
             self.hidden_sizes_values = [self.input_count]+self.hidden_sizes_values+[self.output_count]
 
-            self.total_hidden_count = sum(self.hidden_sizes_values[1:-1])
+            self.hidden_count = sum(self.hidden_sizes_values[1:-1])
 
-            self.weights_count = findsize(self.hidden_sizes_values, self.bias_count)
+            self.weight_count = findsize(self.hidden_sizes_values, self.bias_count)
 
             self.randomiseweights()
         else:
@@ -145,9 +145,9 @@ class Model:
         self.c_cycles = c_int(self.cycles)
         
         self.c_bias_count = c_int(self.bias_count)
-        self.c_weights_count = c_int(self.weights_count)
+        self.c_weight_count = c_int(self.weight_count)
         self.c_input_count = c_int(self.input_count)
-        self.c_total_hidden_count = c_int(self.total_hidden_count)
+        self.c_hidden_count = c_int(self.hidden_count)
         self.c_output_count = c_int(self.output_count)
         self.c_layer_count = c_int(self.layer_count)
 
@@ -172,7 +172,7 @@ class Model:
     def save(self):
         if "nan" not in [str(value).lower() for value in self.weights_values]:
             config_file = open("./" + self.model_name + "/config.txt", "w")
-            config_file.write(str(self.normaliser_depth) + "," + str(self.bias_count) + "," + str(self.weights_count) + "," + str(self.layer_count) + "\n" + ",".join([str(value) for value in self.hidden_sizes_values]) + "\n" + ",".join([str(value) for value in self.activation_values]))
+            config_file.write(str(self.normaliser_depth) + "," + str(self.bias_count) + "," + str(self.weight_count) + "," + str(self.layer_count) + "\n" + ",".join([str(value) for value in self.hidden_sizes_values]) + "\n" + ",".join([str(value) for value in self.activation_values]))
             config_file.close()
 
             self.weights_values = [Decimal(value) for value in self.c_weights_values]
@@ -203,7 +203,7 @@ class Model:
         config_data = config_split[0].split(",")
         self.normaliser_depth = int(config_data[0])
         self.bias_count = int(config_data[1])
-        self.weights_count = int(config_data[2])
+        self.weight_count = int(config_data[2])
         self.layer_count = int(config_data[3])
 
         self.hidden_sizes_values = [int(value) for value in config_split[1].split(",")]
@@ -211,7 +211,7 @@ class Model:
         self.input_count = self.hidden_sizes_values[0]
         self.output_count = self.hidden_sizes_values[-1]
 
-        self.total_hidden_count = sum(self.hidden_sizes_values[1:-1])
+        self.hidden_count = sum(self.hidden_sizes_values[1:-1])
 
         self.activation_values = [int(value) for value in config_split[2].split(",")]
 
@@ -252,7 +252,7 @@ class Model:
                 self.c_learning_rate = c_double(self.learning_rate)
 
                 backup_weights_values = self.weights_values.copy()
-                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_input_count, self.c_output_count, self.c_weights_values)
+                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values)
                 self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
                 if "nan" in [str(value).lower() for value in self.weights_values] or self.weights_values == backup_weights_values:
@@ -267,7 +267,7 @@ class Model:
             self.learning_rate *= Decimal("0." + 16*"9")
             self.c_learning_rate = c_double(self.learning_rate)
             
-        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_input_count, self.c_output_count, self.c_weights_values)
+        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values)
 
         self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
@@ -303,13 +303,13 @@ class Model:
             mean = findmean(diff_values)
             deviation = finddeviation(diff_values, mean)
 
-            weights_values_sum = [Decimal(0) for j in range(self.weights_count)]
+            weights_values_sum = [Decimal(0) for j in range(self.weight_count)]
             weights_values_count = 0
             avg_diff = 0
 
             for diff in diff_values:
                 if diff <= mean-deviation*Decimal(deviation_coefficient):
-                    weights_values_sum = [weights_values_sum[j]+weights_values_set[diff][j] for j in range(self.weights_count)]
+                    weights_values_sum = [weights_values_sum[j]+weights_values_set[diff][j] for j in range(self.weight_count)]
                     weights_values_count += 1
                     avg_diff += diff
 
@@ -320,7 +320,7 @@ class Model:
             print(avg_diff)
             print(weights_values_count)
             
-            for j in range(self.weights_count):
+            for j in range(self.weight_count):
                 weights_values_sum[j] /= Decimal(weights_values_count)
             
             for j in range(pool_size):
@@ -345,7 +345,7 @@ class Model:
         self.c_output_values_seq = c_double*(line_count*self.output_count)
         self.c_output_values = self.c_output_values_seq(*self.output_values)
 
-        clib.test(c_line_count, c_input_values, self.c_output_values, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_total_hidden_count, self.c_bias_count, self.c_weights_count, self.c_input_count, self.c_output_count, self.c_weights_values)
+        clib.test(c_line_count, c_input_values, self.c_layer_count, self.c_activation_values, self.c_hidden_sizes_values, self.c_hidden_count, self.c_bias_count, self.c_weight_count, self.c_weights_values, self.c_output_values)
 
         self.output_values = [Decimal(value) for value in self.c_output_values]
 

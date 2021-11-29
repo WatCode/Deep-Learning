@@ -6,7 +6,7 @@ filer = open("COVRAW.txt", "r").read().split("\n")
 
 heading_list = filer[0].split(",")
 
-iso_list = ["JPN"]
+iso_list = ["ZAF"]
 iso_data = {iso:{heading:[] for heading in heading_list} for iso in iso_list}
 
 iso_lengths = {iso:0 for iso in iso_list}
@@ -40,7 +40,7 @@ for iso in iso_list:
             normalised_iso_data[iso][heading].append(iso_data[iso][heading][i])
             
 input_size = 200
-output_size = 1
+output_size = 7
 
 to_write_train = ""
 to_write_validate = ""
