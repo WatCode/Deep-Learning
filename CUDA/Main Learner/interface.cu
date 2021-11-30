@@ -460,8 +460,27 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
 
         cycle++;
     }
-
+    
     cudaMemcpy(weight_values, d_weight_values, weight_count*size_of_float, cudaMemcpyDeviceToHost);
+
+    cudaFree(d_values_train);
+    cudaFree(d_values_test);
+
+    cudaFree(d_target_values_train);
+    cudaFree(d_target_values_test);
+    
+    cudaFree(d_weight_values);
+
+    cudaFree(derivative_sum_values);
+
+    cudaFree(d_sum);
+
+    free(prev_diff_values);
+    free(prev_prev_diff_values);
+
+    free(learning_rate_values);
+
+    free(sum);
 }
 
 __host__ void test(int line_count, float *input_values, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, float *weight_values, float *output_values){
