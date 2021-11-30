@@ -51,8 +51,8 @@ for heading in target_headings:
     for i in range(len(moving_average_data[heading])):
         moving_average_data[heading][i] /= sum_data[i]
 
-input_size = 100
-output_size = 1
+input_size = 200
+output_size = 7
 
 to_write_train = ""
 to_write_validate = ""
