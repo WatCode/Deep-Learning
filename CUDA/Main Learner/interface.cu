@@ -167,7 +167,12 @@ __global__ void varyfind(float *output_values, int offset_output, float *target_
     int index = blockIdx.x*blockDim.x + threadIdx.x;
 
     if(index < count){
-        protectedAddition(&sum[0], fabs(target_values[offset_target + index] - output_values[offset_output + index]));
+        if(target_values[offset_target + index] != 0){
+            protectedAddition(&sum[0], fabs((target_values[offset_target + index] - output_values[offset_output + index])/target_values[offset_target + index]));
+        }
+        else{
+            protectedAddition(&sum[0], fabs(target_values[offset_target + index] - output_values[offset_output + index]));
+        }
     }
 }
 

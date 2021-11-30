@@ -361,24 +361,22 @@ class Model:
         
         for i in range(int(len(Data.target_values_test)/self.output_count)):
             self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
-            
-        self.recursive_output_values += Data.target_values_test[-self.output_count+feedback_count:]
 
-        Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
-        self.test(Data, test_mode=True)
-        
-        pooled_output_values = self.output_values.copy()
+        self.recursive_output_values += Data.target_values_test[len(Data.target_values_test)-self.output_count+feedback_count:]
 
-        for i in range(loop_count-1):
-            self.recursive_output_values += pooled_output_values[:feedback_count]
-
+        for i in range(loop_count):
             Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
             self.test(Data, test_mode=True)
 
-            pooled_output_values = pooled_output_values[feedback_count:]
-            pooled_output_values += self.output_values[-feedback_count:]
-            pooled_output_values = [(pooled_output_values[i]+self.output_values[i])/Decimal(2) for i in range(self.output_count)]
-
+            if i == 0:
+                pooled_output_values = self.output_values.copy()
+            else:
+                pooled_output_values = pooled_output_values[feedback_count:]
+                pooled_output_values += self.output_values[-feedback_count:]
+                pooled_output_values = [(pooled_output_values[i]+self.output_values[i])/Decimal(2) for i in range(self.output_count)]
+                
+            self.recursive_output_values += pooled_output_values[:feedback_count]
+            
 
 
 class Data:
