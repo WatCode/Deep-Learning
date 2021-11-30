@@ -7,7 +7,7 @@ import os
 
 getcontext().prec = 64
 
-clib = CDLL("./deep.so")
+clib = CDLL("./deep.dll")
 
 def findsize(hidden_sizes, bias_count):
     total_size = 0
