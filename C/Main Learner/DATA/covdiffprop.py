@@ -8,7 +8,7 @@ heading_list = filer[0].split(",")
 
 heading_data = {heading:[] for heading in heading_list}
 
-length = 0
+length = -1
 
 for line in filer[1:]:
     line_split = line.split(",")
@@ -29,7 +29,7 @@ target_headings = ["EC","FS","GP","KZN","LP","MP","NC","NW","WC"]
 
 heading_size = {"EC":6.712276,"FS":2.887465,"GP":15.176115,"KZN":11.289086,"LP":5.982584,"MP":4.592187,"NC":1.263875,"NW":4.027160,"WC":6.844272}
 
-normalised_data = {heading:[Decimal(0)] for heading in target_headings}
+normalised_data = {heading:[] for heading in target_headings}
 sum_data = [Decimal(0) for i in range(length)]
 
 for heading in target_headings:
@@ -42,12 +42,18 @@ for heading in target_headings:
         normalised_data[heading][i] /= sum_data[i]
             
 moving_average_data = {heading:[] for heading in target_headings}
+average_length = 7
 
 for heading in target_headings:
-    for i in range(len(normalised_data[heading])-6):
-        moving_average_data[heading].append(sum(normalised_data[heading][i:i+7])/Decimal(7))
+    for i in range(len(normalised_data[heading])):
+        upper = i+average_length
+        
+        if upper > len(normalised_data[heading]):
+            upper = len(normalised_data[heading])
+            
+        moving_average_data[heading].append(sum(normalised_data[heading][i:upper])/Decimal(upper-i))
 
-input_size = 120
+input_size = 180
 output_size = 7
 
 for heading in target_headings:
