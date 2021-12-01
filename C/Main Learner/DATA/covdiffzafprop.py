@@ -28,18 +28,28 @@ heading_size = {"EC":6.712276,"FS":2.887465,"GP":15.176115,"KZN":11.289086,"LP":
 normalised_data = {heading:[] for heading in target_headings}
 
 for heading in target_headings:
+    length = 0
+    
     for i in range(len(heading_data[heading])-1):
         normalised_data[heading].append((heading_data[heading][i+1]-heading_data[heading][i])/Decimal(heading_size[heading]))
+        
+        length += 1
             
 moving_average_data = {heading:[] for heading in target_headings}
+sum_data = [Decimal(0) for i in range(length-6)]
 
 for heading in target_headings:
     length = 0
     
     for i in range(len(normalised_data[heading])-6):
         moving_average_data[heading].append(sum(normalised_data[heading][i:i+7])/Decimal(7))
+        sum_data[i] += moving_average_data[heading][i]
         
         length += 1
+
+for heading in target_headings:
+    for i in range(len(moving_average_data[heading])):
+        moving_average_data[heading][i] /= sum_data[i]
 
 input_size = 200
 output_size = 7
