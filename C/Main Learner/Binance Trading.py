@@ -21,7 +21,7 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-trade_fees = Decimal(0.0002)
+trade_fees = Decimal(0.00075)
 
 USDT_balance = Decimal(1000)
 BTC_balance = Decimal(0)
