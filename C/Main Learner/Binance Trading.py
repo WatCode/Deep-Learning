@@ -34,7 +34,7 @@ predicted_count = 20
 while True:
     klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "4 hours ago UTC")
     
-    previous_prices = [Decimal(element[4]) for element in klines[-201:]]
+    previous_prices = [Decimal(element[4]) for element in klines[-301:]]
     change_prices = [previous_prices[i+1]/previous_prices[i] for i in range(len(previous_prices)-1)]
     
     Trade_Data.load([], [], change_prices, [])

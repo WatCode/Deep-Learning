@@ -14,7 +14,7 @@ close_prices = [Decimal(entry[4]) for entry in klines]
 close_ratio = [close_prices[i+1]/close_prices[i] for i in range(len(close_prices)-1)]
 
 input_size = 300
-output_size = 30
+output_size = 10
 
 model_count = 4
 
