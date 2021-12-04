@@ -21,6 +21,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   double* diff_values = (double*) malloc(line_count_train * size_of_double_A);
   double* prev_diff_values = (double*) malloc(line_count_train * size_of_double_A);
 
+  double avg_learning_rate;
   double diff_train, avg_diff_train, prev_avg_diff_train;
   double diff_validate, avg_diff_validate, prev_avg_diff_validate;
   double change_coefficient, cycles_remaining_current;
@@ -48,6 +49,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   avg_diff_train = min_diff;
 
   while (avg_diff_train >= min_diff && (minimum_reached == zero_A && (cycles == -1 || cycle < cycles))) {
+    avg_learning_rate = zero_A;
     avg_diff_train = zero_A;
     avg_diff_validate = zero_A;
 
@@ -58,14 +60,16 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
       diff_train = varyfind(line_count_train, line_num_train, input_count, hidden_count, output_count, target_values_train, hidden_values_layers_train);
       avg_diff_train += diff_train;
 
-      change_coefficient = fabs((diff_values[line_num_train]-prev_diff_values[line_num_train])/(diff_train-diff_values[line_num_train]));
+      change_coefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
 
-      if(cycle > one_A && diff_train != diff_values[line_num_train] && diff_values[line_num_train] != prev_diff_values[line_num_train] && change_coefficient < 2.0){
+      if(cycle > one_A && diff_train < diff_values[line_num_train] && diff_values[line_num_train] <= prev_diff_values[line_num_train] && change_coefficient < two_A){
         learning_rate_values[line_num_train] *= change_coefficient;
       }
       else{
         learning_rate_values[line_num_train] = learning_rate;
       }
+
+      avg_learning_rate += learning_rate_values[line_num_train];
 
       prev_diff_values[line_num_train] = diff_values[line_num_train];
       diff_values[line_num_train] = diff_train;
@@ -78,6 +82,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
       avg_diff_validate += diff_validate;
     }
 
+    avg_learning_rate /= (double) line_count_train;
     avg_diff_train /= (double) line_count_train;
     avg_diff_validate /= (double) line_count_validate;
 
@@ -111,7 +116,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     prev_avg_diff_train = avg_diff_train;
     prev_avg_diff_validate = avg_diff_validate;
 
-    printf("%.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2);
+    printf("%.16f : %.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2, avg_learning_rate);
     
     cycle++;
   }
