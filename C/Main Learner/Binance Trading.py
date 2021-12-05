@@ -12,9 +12,9 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model())
-    Trade_Models[i].load(model_name+str(i+1))
+    Trade_Models[i].load(model_name+str(i))
 
-Trade_Data = Data(Trade_Models[0])
+Trade_Data = Data(Trade_Models[0].input_count)
 
 api_key = "xtJNJ5ye25ze6DbFrX9zlMrcl16IyDeSUdAKVBOTou5vEb7RDWlFRTzK2EvurcJD"
 secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
@@ -32,12 +32,12 @@ fees_paid = Decimal(0)
 predicted_count = 20
 
 while True:
-    klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "4 hours ago UTC")
+    klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     
     previous_prices = [Decimal(element[4]) for element in klines[-301:]]
     change_prices = [previous_prices[i+1]/previous_prices[i] for i in range(len(previous_prices)-1)]
     
-    Trade_Data.load([], [], change_prices, [])
+    Trade_Data.load([], [], [], [], change_prices, [])
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -105,7 +105,7 @@ while True:
             USDT_invested -= (Decimal(1)-trade_fees)*((proportion*BTC_balance)*BTCUSDT_rate)
             BTC_balance *= (Decimal(1)-proportion)
     
-    print(compounded_change[:index])
+    print(index)
     print(net_change)
     print(USDT_balance)
     print(BTC_balance*BTCUSDT_rate)
