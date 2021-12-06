@@ -1,4 +1,5 @@
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
+import matplotlib.pyplot as plt
 from DeepLearner import *
 from decimal import *
 from time import *
@@ -29,13 +30,17 @@ BTC_balance = Decimal(0)
 USDT_invested = Decimal(0)
 fees_paid = Decimal(0)
 
-predicted_count = 20
+predicted_count = 30
+
+x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
     klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     
-    previous_prices = [Decimal(element[4]) for element in klines[-301:]]
+    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-1:]]
     change_prices = [previous_prices[i+1]/previous_prices[i] for i in range(len(previous_prices)-1)]
+    
+    y_values = previous_prices[1:]
     
     Trade_Data.load([], [], [], [], change_prices, [])
     
@@ -57,6 +62,7 @@ while True:
         multiplier *= change_multiplier
         
         compounded_change.append(multiplier)
+        y_values.append(y_values[-1]*change_multiplier)
     
     net_change = multiplier-Decimal(1)
     proportion = Decimal(1)
@@ -74,7 +80,7 @@ while True:
     for change in compounded_change:
         index += 1
         
-        if change-Decimal(1) < -trade_fees:
+        if change-Decimal(1) < 0:
             all_negative = True
             break
         if change-Decimal(1) > trade_fees:
@@ -114,3 +120,9 @@ while True:
     print("\n")
     
     #sleep(1)
+    
+    plt.clf()
+    plt.plot(x_values, y_values)
+    plt.pause(0.01)
+
+plt.show()
