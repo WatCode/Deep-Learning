@@ -11,20 +11,21 @@ klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, 
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 
-close_ratio = [str(close_prices[i+1]-close_prices[i]) for i in range(len(close_prices)-1)]
+close_diff = [close_prices[i+1]-close_prices[i] for i in range(len(close_prices)-1)]
+moving_average_diff = [str(sum(close_diff[i:i+10])/Decimal(10)) for i in range(len(close_diff)-9)]
 
 input_size = 300
 output_size = 10
 
 model_count = 10
 
-line_count = len(close_ratio)-input_size-output_size
+line_count = len(moving_average_diff)-input_size-output_size
 
 for i in range(line_count):
     print(i)
     model_num = floor(i/(line_count/model_count))
     
-    to_write = ",".join(close_ratio[i:i+input_size]) + ":" + ",".join(close_ratio[i+input_size:i+input_size+output_size]) + "\n"
+    to_write = ",".join(moving_average_diff[i:i+input_size]) + ":" + ",".join(moving_average_diff[i+input_size:i+input_size+output_size]) + "\n"
 
     if i%2 == 0:
         filew = open("BTCDIFF" + str(model_num) + "TRAIN.txt", "a")

@@ -30,19 +30,21 @@ BTC_balance = Decimal(0)
 USDT_invested = Decimal(0)
 fees_paid = Decimal(0)
 
-predicted_count = 30
+predicted_count = 300
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
     klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     
-    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-1:]]
+    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-10:]]
+    
     change_prices = [previous_prices[i+1]-previous_prices[i] for i in range(len(previous_prices)-1)]
+    moving_average_change = [sum(change_prices[i:i+10])/Decimal(10) for i in range(len(change_prices)-9)]
     
-    y_values = previous_prices[1:]
+    y_values = previous_prices[10:]
     
-    Trade_Data.load([], [], [], [], change_prices, [])
+    Trade_Data.load([], [], [], [], moving_average_change, [])
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -55,16 +57,15 @@ while True:
     for i in range(predicted_count):
         recursive_output_values[i] /= Decimal(model_count)
     
-    multiplier = Decimal(1)
+    net_change = Decimal(0)
     compounded_change = []
     
-    for change_multiplier in recursive_output_values:
-        multiplier *= change_multiplier
+    for change in recursive_output_values:
+        net_change += change
         
-        compounded_change.append(multiplier)
-        y_values.append(y_values[-1]*change_multiplier)
+        compounded_change.append(net_change/previous_prices[-1])
+        y_values.append(y_values[-1]+change)
     
-    net_change = multiplier-Decimal(1)
     proportion = Decimal(1)
     
     if proportion > 1:
@@ -80,10 +81,10 @@ while True:
     for change in compounded_change:
         index += 1
         
-        if change-Decimal(1) < 0:
+        if change < -trade_fees:
             all_negative = True
             break
-        if change-Decimal(1) > trade_fees:
+        if change > trade_fees:
             all_positive = True
             break
     
@@ -112,7 +113,7 @@ while True:
             BTC_balance *= (Decimal(1)-proportion)
     
     print(index)
-    print(net_change)
+    print(compounded_change[-1])
     print(USDT_balance)
     print(BTC_balance*BTCUSDT_rate)
     print(USDT_balance+BTC_balance*BTCUSDT_rate)
