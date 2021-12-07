@@ -18,8 +18,6 @@ header_values = [[Model0.recursive_output_values[j*header_count+i] for j in rang
 
 x_values = [i for i in range(int(len(Model0.recursive_output_values)/header_count))]
 
-#fig, axs = plt.subplots(header_count)
-
 for i in range(header_count):
     y_values = []
     cumulative_change = Decimal(0)
