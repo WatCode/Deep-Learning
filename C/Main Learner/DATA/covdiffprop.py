@@ -34,7 +34,7 @@ sum_data = [Decimal(0) for i in range(length)]
 
 for heading in target_headings:
     for i in range(len(heading_data[heading])-1):
-        normalised_data[heading].append((heading_data[heading][i+1]-heading_data[heading][i])/Decimal(heading_size[heading]))
+        normalised_data[heading].append((heading_data[heading][i+1]-heading_data[heading][i]))
         sum_data[i] += normalised_data[heading][i]
         
 for heading in target_headings:
@@ -42,7 +42,7 @@ for heading in target_headings:
         normalised_data[heading][i] /= sum_data[i]
             
 moving_average_data = {heading:[] for heading in target_headings}
-average_length = 7
+average_length = 14
 
 for heading in target_headings:
     for i in range(len(normalised_data[heading])):
