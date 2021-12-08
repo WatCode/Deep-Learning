@@ -8,11 +8,8 @@ heading_list = filer[0].split(",")
 
 heading_data = {heading:[] for heading in heading_list}
 
-length = 0
-
 for line in filer[1:]:
     line_split = line.split(",")
-    length += 1
     
     for i in range(len(line_split)):
         value = line_split[i]
@@ -30,17 +27,17 @@ heading_size = {"EC":6.712276,"FS":2.887465,"GP":15.176115,"KZN":11.289086,"LP":
 
 average_size = 7
 
+diff_data = {heading:[] for heading in target_headings}
+
+for heading in target_headings:
+    for i in range(len(heading_data[heading])-1):
+        diff_data[heading].append(heading_data[heading][i+1]-heading_data[heading][i])
+
 normalised_data = {heading:[] for heading in target_headings}
-sum_data = [Decimal(0) for i in range(length)]
 
 for heading in target_headings:
-    for i in range(len(heading_data[heading])):
-        normalised_data[heading].append(heading_data[heading][i])
-        sum_data[i] += heading_data[heading][i]
-
-for heading in target_headings:
-    for i in range(len(normalised_data[heading])):
-        normalised_data[heading][i] /= sum_data[i]
+    for i in range(len(diff_data[heading])-average_size+1):
+        normalised_data[heading].append(sum(diff_data[heading][i:i+average_size])/Decimal(average_size))
 
 input_size = 180
 output_size = 7
@@ -50,7 +47,7 @@ for heading in target_headings:
     to_write_validate = ""
     to_write_test = ""
     
-    for i in range(length-input_size-output_size):
+    for i in range(len(normalised_data[heading])-input_size-output_size):
         for j in range(input_size):
             if i%2 == 0:
                 to_write_train += str(normalised_data[heading][i+j]) + ","
