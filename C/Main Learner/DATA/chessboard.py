@@ -16,15 +16,15 @@ pgn.close()
 
 to_write_lines = []
 
-for game in game_list[:10]:
+for game in game_list[:20]:
     board = game.board()
     
-    prev_state = str(board).replace("\n", " ").replace(" ", ",").replace(".", "0").replace("p", "0.2").replace("P", "-0.2").replace("n", "0.4").replace("N", "-0.4").replace("b", "0.6").replace("B", "-0.6").replace("r", "0.8").replace("R", "-0.8").replace("q", "1.0").replace("Q", "-1.0").replace("k", "1.2").replace("K", "-1.2")
+    prev_state = str(board).replace("\n", " ").replace(" ", ",").replace(".", "0").replace("p", "0.1").replace("P", "-0.1").replace("n", "0.2").replace("N", "-0.2").replace("b", "0.3").replace("B", "-0.3").replace("r", "0.4").replace("R", "-0.4").replace("q", "0.5").replace("Q", "-0.5").replace("k", "0.6").replace("K", "-0.6")
 
     for move in game.mainline_moves():
         board.push(move)
         
-        current_state = str(board).replace("\n", " ").replace(" ", ",").replace(".", "0").replace("p", "0.2").replace("P", "-0.2").replace("n", "0.4").replace("N", "-0.4").replace("b", "0.6").replace("B", "-0.6").replace("r", "0.8").replace("R", "-0.8").replace("q", "1.0").replace("Q", "-1.0").replace("k", "1.2").replace("K", "-1.2")
+        current_state = str(board).replace("\n", " ").replace(" ", ",").replace(".", "0").replace("p", "0.1").replace("P", "-0.1").replace("n", "0.2").replace("N", "-0.2").replace("b", "0.3").replace("B", "-0.3").replace("r", "0.4").replace("R", "-0.4").replace("q", "0.5").replace("Q", "-0.5").replace("k", "0.6").replace("K", "-0.6")
         
         to_write_lines.append(prev_state + ":" + current_state)
         
