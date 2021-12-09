@@ -108,7 +108,7 @@ class Model:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]+[6]
+                self.activation_values = [4 for i in range(6)]
 
                 if softmax:
                     self.activation_values += [100]

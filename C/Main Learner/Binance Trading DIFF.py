@@ -30,7 +30,7 @@ BTC_balance = Decimal(0)
 USDT_invested = Decimal(0)
 fees_paid = Decimal(0)
 
-predicted_count = 90
+predicted_count = 30
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
