@@ -7,7 +7,7 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "70 days ago UTC")
+klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "50 days ago UTC")
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 
@@ -17,7 +17,7 @@ moving_average_diff = [str(sum(close_diff[i:i+10])/Decimal(10)) for i in range(l
 input_size = 300
 output_size = 10
 
-model_count = 10
+model_count = 50
 
 line_count = len(moving_average_diff)-input_size-output_size
 

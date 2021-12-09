@@ -63,7 +63,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
       change_coefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
 
       if(diff_train > diff_values[line_num_train]){
-        change_coefficient = 0.5;
+        change_coefficient = 0.1;
       }
 
       if(change_coefficient > 1.2){
