@@ -112,17 +112,17 @@ double delu(double x) {
 	}
 }
 
-void softmax(int distance, int count, double *values){
+void softmax(int distance, int c_count, double *values){
 	double z, s;
 	s = 0;
 
-	for(int i = 0; i < count; i++){
+	for(int i = 0; i < c_count; i++){
 		z = pow(e, values[distance + i]);
 		values[distance + i] = z;
 		s += z;
 	}
 
-	for(int i = 0; i < count; i++) values[distance + i] /= s;
+	for(int i = 0; i < c_count; i++) values[distance + i] /= s;
 }
 
 double activate(int activation_value, double x) {
@@ -160,49 +160,49 @@ double activate(int activation_value, double x) {
 	}
 }
 
-void vectorctivate(int activation_value, int distance, int count, double *values) {
+void vectorctivate(int activation_value, int distance, int c_count, double *values) {
 	switch (activation_value) {
 		case 100:
-			softmax(distance, count, values);
+			softmax(distance, c_count, values);
 	}
 }
 
-double varyfind(int lineount, int line_num, int inputount, int hiddenount, int outputount, double *target_values, double *values) {
+double varyfind(int line_count, int line_num, int input_count, int hidden_count, int output_count, double *target_values, double *values) {
 	double sum = zero;
-	int hidden_neuron_distance = lineount * inputount + hiddenount;
+	int hidden_neuron_distance = line_count * input_count + hidden_count;
 
-	for (int i = zero; i < outputount; i++) {
-		if(target_values[line_num * outputount + i] != 0) {
-			sum += fabs((target_values[line_num * outputount + i] - values[hidden_neuron_distance + i])/target_values[line_num * outputount + i]);
+	for (int i = zero; i < output_count; i++) {
+		if(target_values[line_num * output_count + i] != 0) {
+			sum += fabs((target_values[line_num * output_count + i] - values[hidden_neuron_distance + i])/target_values[line_num * output_count + i]);
 		}
 		else{
-			sum += fabs(target_values[line_num * outputount + i] - values[hidden_neuron_distance + i]);
+			sum += fabs(target_values[line_num * output_count + i] - values[hidden_neuron_distance + i]);
 		}
 	}
 
-	return sum / ((double)outputount);
+	return sum / ((double)output_count);
 }
 
-void forward(int lineount, int line_num, int *activation_values, int *hidden_sizes, int layerount, int biasount, int inputount, int outputount, double *values, double *weight_values) {
-	int currentount, prevount, hidden_neuron_distance, hidden_weight_distance, prev_neuron_distance;
+void forward(int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int output_count, double *values, double *weight_values) {
+	int current_count, prev_count, hidden_neuron_distance, hidden_weight_distance, prev_neuron_distance;
 
-	prev_neuron_distance = line_num * inputount;
-	hidden_neuron_distance = lineount * inputount;
+	prev_neuron_distance = line_num * input_count;
+	hidden_neuron_distance = line_count * input_count;
 	hidden_weight_distance = zero;
 
-	for (int layer_num = zero; layer_num < layerount+1; layer_num++) {
-		currentount = hidden_sizes[layer_num+1];
-		prevount = hidden_sizes[layer_num];
+	for (int layer_num = zero; layer_num < layer_count+1; layer_num++) {
+		current_count = hidden_sizes[layer_num+1];
+		prev_count = hidden_sizes[layer_num];
 
-		for (int h = zero; h < currentount; h++) values[hidden_neuron_distance + h] = zero;
+		for (int h = zero; h < current_count; h++) values[hidden_neuron_distance + h] = zero;
 
-		for (int i = zero; i < currentount; i++) {
-			for (int j = zero; j < prevount; j++) {
+		for (int i = zero; i < current_count; i++) {
+			for (int j = zero; j < prev_count; j++) {
 				values[hidden_neuron_distance + i] += values[prev_neuron_distance + j] * weight_values[hidden_weight_distance];
 				hidden_weight_distance++;
 			}
 
-			for (int j = zero; j < biasount; j++) {
+			for (int j = zero; j < bias_count; j++) {
 				values[hidden_neuron_distance + i] += weight_values[hidden_weight_distance];
 				hidden_weight_distance++;
 			}
@@ -210,97 +210,97 @@ void forward(int lineount, int line_num, int *activation_values, int *hidden_siz
 			if(activation_values[layer_num] < 100) values[hidden_neuron_distance + i] = activate(activation_values[layer_num], values[hidden_neuron_distance + i]);
 		}
 
-		if(activation_values[layer_num] >= 100) vectorctivate(activation_values[layer_num], hidden_neuron_distance, currentount, values);
+		if(activation_values[layer_num] >= 100) vectorctivate(activation_values[layer_num], hidden_neuron_distance, current_count, values);
 
 		prev_neuron_distance = hidden_neuron_distance;
-		hidden_neuron_distance += currentount;
+		hidden_neuron_distance += current_count;
 	}
 }
 
-void backward(int lineount, int line_num, int *activation_values, int *hidden_sizes, int layerount, int biasount, int inputount, int hiddenount, int outputount, int weightount, double *values, double *target_values, double *weight_values, double learning_rate) {
-	int currentount, nextount, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance;
-	double* derivative_sum = (double*)malloc(outputount * size_of_double);
+void backward(int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int hidden_count, int output_count, int weight_count, double *values, double *target_values, double *weight_values, double learning_rate) {
+	int current_count, next_count, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance;
+	double* derivative_sum = (double*)malloc(output_count * size_of_double);
 	double* future_sum = (double*)malloc(size_of_double);
 	double part_delta;
 
-	hidden_neuron_distance = lineount * inputount + hiddenount;
-	hidden_weight_distance = weightount;
+	hidden_neuron_distance = line_count * input_count + hidden_count;
+	hidden_weight_distance = weight_count;
 	input_neuron_distance = zero;
 
-	for (int h = zero; h < outputount; h++) derivative_sum[h] = (values[hidden_neuron_distance + h] - target_values[line_num * outputount + h]);
+	for (int h = zero; h < output_count; h++) derivative_sum[h] = (values[hidden_neuron_distance + h] - target_values[line_num * output_count + h]);
 
-	for (int layer_num = layerount+1; layer_num > zero; layer_num--) {
-		currentount = hidden_sizes[layer_num];
-		nextount = hidden_sizes[layer_num-1];
+	for (int layer_num = layer_count+1; layer_num > zero; layer_num--) {
+		current_count = hidden_sizes[layer_num];
+		next_count = hidden_sizes[layer_num-1];
 
-		if(layer_num == 1) input_neuron_distance = (lineount - line_num - 1) * nextount;
+		if(layer_num == 1) input_neuron_distance = (line_count - line_num - 1) * next_count;
 
-		hidden_weight_distance -= currentount * (nextount + biasount);
+		hidden_weight_distance -= current_count * (next_count + bias_count);
 
-		future_sum = (double*)realloc(future_sum, nextount * size_of_double);
-		for (int h = zero; h < nextount; h++) future_sum[h] = zero;
+		future_sum = (double*)realloc(future_sum, next_count * size_of_double);
+		for (int h = zero; h < next_count; h++) future_sum[h] = zero;
 
-		for (int i = zero; i < currentount; i++) {
+		for (int i = zero; i < current_count; i++) {
 			part_delta = derivative_sum[i];
 			
 			if(activation_values[layer_num-1] < 100) part_delta *= activate(activation_values[layer_num-1]+1, values[hidden_neuron_distance + i]);
 
-			for (int j = zero; j < nextount; j++) {
-				future_sum[j] += part_delta * weight_values[hidden_weight_distance + i * nextount + j];
-				weight_values[hidden_weight_distance + i * nextount + j] -= part_delta * values[hidden_neuron_distance - nextount - input_neuron_distance + j] * learning_rate;
+			for (int j = zero; j < next_count; j++) {
+				future_sum[j] += part_delta * weight_values[hidden_weight_distance + i * next_count + j];
+				weight_values[hidden_weight_distance + i * next_count + j] -= part_delta * values[hidden_neuron_distance - next_count - input_neuron_distance + j] * learning_rate;
 			}
 
-			for (int j = zero; j < biasount; j++) {
-				weight_values[hidden_weight_distance + (i + 1) * nextount + j] -= part_delta * learning_rate;
+			for (int j = zero; j < bias_count; j++) {
+				weight_values[hidden_weight_distance + (i + 1) * next_count + j] -= part_delta * learning_rate;
 			}
 		}
 
-		hidden_neuron_distance -= nextount;
+		hidden_neuron_distance -= next_count;
 
-		derivative_sum = (double*)realloc(derivative_sum, nextount * size_of_double);
-		for (int k = zero; k < nextount; k++) derivative_sum[k] = future_sum[k];
+		derivative_sum = (double*)realloc(derivative_sum, next_count * size_of_double);
+		for (int k = zero; k < next_count; k++) derivative_sum[k] = future_sum[k];
 	}
 
 	free(derivative_sum);
 	free(future_sum);
 }
 
-void train(double min_diff, double learning_rate, int cycles, int lineount_train, double *input_values_train, double *target_values_train, int lineount_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layerount, int biasount, int hiddenount, int weightount, double *weight_values) {
-  int inputount = hidden_sizes[0];
-  int outputount = hidden_sizes[layerount+1];
+void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
+  int input_count = hidden_sizes[0];
+  int output_count = hidden_sizes[layer_count+1];
   
-  double* values_train = (double*) malloc((lineount_train * inputount + hiddenount + outputount) * size_of_double);
-  double* values_validate = (double*) malloc((lineount_validate * inputount + hiddenount + outputount) * size_of_double);
+  double* values_train = (double*) malloc((line_count_train * input_count + hidden_count + output_count) * size_of_double);
+  double* values_validate = (double*) malloc((line_count_validate * input_count + hidden_count + output_count) * size_of_double);
 
-  double* learning_rate_values = (double*) malloc(lineount_train * size_of_double);
+  double* learning_rate_values = (double*) malloc(line_count_train * size_of_double);
 
-  double* diff_values = (double*) malloc(lineount_train * size_of_double);
-  double* prev_diff_values = (double*) malloc(lineount_train * size_of_double);
+  double* diff_values = (double*) malloc(line_count_train * size_of_double);
+  double* prev_diff_values = (double*) malloc(line_count_train * size_of_double);
 
   double avg_learning_rate;
-  double diff_train, avg_diff_train, prevvg_diff_train;
-  double diff_validate, avg_diff_validate, prevvg_diff_validate;
-  double changeoefficient, cycles_remainingurrent;
+  double diff_train, avg_diff_train, prev_avg_diff_train;
+  double diff_validate, avg_diff_validate, prev_avg_diff_validate;
+  double change_coefficient, cycles_remaining_current;
   
   double cycles_remaining_sum1 = zero;
-  double cycles_remainingverage1 = zero;
+  double cycles_remaining_average1 = zero;
   double cycles_remaining_sum2 = zero;
-  double cycles_remainingverage2 = zero;
+  double cycles_remaining_average2 = zero;
 
   int average_size1 = 50;
   int average_size2 = 5;
 
-  double* prevycles_remaining1 = (double*) malloc(average_size1 * size_of_double);
-  double* prevycles_remaining2 = (double*) malloc(average_size2 * size_of_double);
+  double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double);
+  double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double);
 
   int minimum_reached = zero;
 
   int cycle = zero;
 
-  memcpy(values_train, input_values_train, lineount_train*inputount*size_of_double);
-  memcpy(values_validate, input_values_validate, lineount_validate*inputount*size_of_double);
+  memcpy(values_train, input_values_train, line_count_train*input_count*size_of_double);
+  memcpy(values_validate, input_values_validate, line_count_validate*input_count*size_of_double);
 
-  for(int i = zero; i < lineount_train; i++) learning_rate_values[i] = learning_rate;
+  for(int i = zero; i < line_count_train; i++) learning_rate_values[i] = learning_rate;
 
   avg_diff_train = min_diff;
 
@@ -309,25 +309,25 @@ void train(double min_diff, double learning_rate, int cycles, int lineount_train
     avg_diff_train = zero;
     avg_diff_validate = zero;
 
-    for (int line_num_train = zero; line_num_train < lineount_train; line_num_train++) {
-      forward(lineount_train, line_num_train, activation_values, hidden_sizes, layerount, biasount, inputount, outputount, values_train, weight_values);
-      backward(lineount_train, line_num_train, activation_values, hidden_sizes, layerount, biasount, inputount, hiddenount, outputount, weightount, values_train, target_values_train, weight_values, learning_rate_values[line_num_train]);
+    for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
+      forward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
+      backward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, target_values_train, weight_values, learning_rate_values[line_num_train]);
       
-      diff_train = varyfind(lineount_train, line_num_train, inputount, hiddenount, outputount, target_values_train, values_train);
+      diff_train = varyfind(line_count_train, line_num_train, input_count, hidden_count, output_count, target_values_train, values_train);
       avg_diff_train += diff_train;
 
-      changeoefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
+      change_coefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
 
       if(diff_train > diff_values[line_num_train]){
-        changeoefficient = 0.1;
+        change_coefficient = 0.1;
       }
 
-      if(changeoefficient > 1.2){
-        changeoefficient = 1.2;
+      if(change_coefficient > 1.2){
+        change_coefficient = 1.2;
       }
 
       if(cycle > one && diff_train != diff_values[line_num_train] && diff_values[line_num_train] != prev_diff_values[line_num_train]){
-        learning_rate_values[line_num_train] *= changeoefficient;
+        learning_rate_values[line_num_train] *= change_coefficient;
       }
       else{
         learning_rate_values[line_num_train] = learning_rate;
@@ -339,48 +339,48 @@ void train(double min_diff, double learning_rate, int cycles, int lineount_train
       diff_values[line_num_train] = diff_train;
     }
 
-    for(int line_num_validate = zero; line_num_validate < lineount_validate; line_num_validate++){
-      forward(lineount_validate, line_num_validate, activation_values, hidden_sizes, layerount, biasount, inputount, outputount, values_train, weight_values);
+    for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
+      forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
       
-      diff_validate = varyfind(lineount_validate, line_num_validate, inputount, hiddenount, outputount, target_values_validate, values_validate);
+      diff_validate = varyfind(line_count_validate, line_num_validate, input_count, hidden_count, output_count, target_values_validate, values_validate);
       avg_diff_validate += diff_validate;
     }
 
-    avg_learning_rate /= (double) lineount_train;
-    avg_diff_train /= (double) lineount_train;
-    avg_diff_validate /= (double) lineount_validate;
+    avg_learning_rate /= (double) line_count_train;
+    avg_diff_train /= (double) line_count_train;
+    avg_diff_validate /= (double) line_count_validate;
 
     if(cycle > average_size2){
-      cycles_remainingverage2 = cycles_remaining_sum2/average_size2;
-      cycles_remaining_sum2 -= prevycles_remaining2[0];
+      cycles_remaining_average2 = cycles_remaining_sum2/average_size2;
+      cycles_remaining_sum2 -= prev_cycles_remaining2[0];
     }
 
     if(cycle > average_size1){
-      cycles_remainingverage1 = cycles_remaining_sum1/average_size1;
+      cycles_remaining_average1 = cycles_remaining_sum1/average_size1;
 
-      if(cycles_remainingverage2 < 0.999*cycles_remainingverage1 && cycles_remainingverage2 < one){
+      if(cycles_remaining_average2 < 0.999*cycles_remaining_average1 && cycles_remaining_average2 < one){
         minimum_reached = one;
       }
 
-      cycles_remaining_sum1 -= prevycles_remaining1[0];
+      cycles_remaining_sum1 -= prev_cycles_remaining1[0];
     }
 
     if(cycle > zero){
-      cycles_remainingurrent = ((prevvg_diff_train/avg_diff_train)+(prevvg_diff_validate/avg_diff_validate))/two;
-      cycles_remaining_sum1 += cycles_remainingurrent;
-      cycles_remaining_sum2 += cycles_remainingurrent;
+      cycles_remaining_current = ((prev_avg_diff_train/avg_diff_train)+(prev_avg_diff_validate/avg_diff_validate))/two;
+      cycles_remaining_sum1 += cycles_remaining_current;
+      cycles_remaining_sum2 += cycles_remaining_current;
 
-      for(int i = zero; i < average_size1-1; i++) prevycles_remaining1[i] = prevycles_remaining1[i+1];
-      for(int i = zero; i < average_size2-1; i++) prevycles_remaining2[i] = prevycles_remaining2[i+1];
+      for(int i = zero; i < average_size1-1; i++) prev_cycles_remaining1[i] = prev_cycles_remaining1[i+1];
+      for(int i = zero; i < average_size2-1; i++) prev_cycles_remaining2[i] = prev_cycles_remaining2[i+1];
 
-      prevycles_remaining1[average_size1-1] = cycles_remainingurrent;
-      prevycles_remaining2[average_size2-1] = cycles_remainingurrent;
+      prev_cycles_remaining1[average_size1-1] = cycles_remaining_current;
+      prev_cycles_remaining2[average_size2-1] = cycles_remaining_current;
     }
 
-    prevvg_diff_train = avg_diff_train;
-    prevvg_diff_validate = avg_diff_validate;
+    prev_avg_diff_train = avg_diff_train;
+    prev_avg_diff_validate = avg_diff_validate;
 
-    printf("%.16f : %.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remainingverage1, cycles_remainingverage2, avg_learning_rate);
+    printf("%.16f : %.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2, avg_learning_rate);
     
     cycle++;
   }
@@ -393,24 +393,24 @@ void train(double min_diff, double learning_rate, int cycles, int lineount_train
   free(diff_values);
   free(prev_diff_values);
 
-  free(prevycles_remaining1);
-  free(prevycles_remaining2);
+  free(prev_cycles_remaining1);
+  free(prev_cycles_remaining2);
 }
 
-void test(int lineount, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layerount, int biasount, int hiddenount, int weightount, double *weight_values){
-  int inputount = hidden_sizes[0];
-  int outputount = hidden_sizes[layerount+1];
+void test(int line_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
+  int input_count = hidden_sizes[0];
+  int output_count = hidden_sizes[layer_count+1];
 
-  double* values = (double*) malloc((lineount * inputount + hiddenount + outputount) * size_of_double);
-  int hidden_neuron_dist = lineount * inputount + hiddenount;
+  double* values = (double*) malloc((line_count * input_count + hidden_count + output_count) * size_of_double);
+  int hidden_neuron_dist = line_count * input_count + hidden_count;
 
-  for(int i = zero; i < lineount * inputount; i++) values[i] = input_values[i];
+  for(int i = zero; i < line_count * input_count; i++) values[i] = input_values[i];
 
-  for (int line_num = zero; line_num < lineount; line_num++) {
-    forward(lineount, line_num, activation_values, hidden_sizes, layerount, biasount, inputount, outputount, values, weight_values);
+  for (int line_num = zero; line_num < line_count; line_num++) {
+    forward(line_count, line_num, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values, weight_values);
 
-    for (int i = zero; i < outputount; i++){
-      output_values[line_num * outputount + i] = values[hidden_neuron_dist + i];
+    for (int i = zero; i < output_count; i++){
+      output_values[line_num * output_count + i] = values[hidden_neuron_dist + i];
     }
   }
 

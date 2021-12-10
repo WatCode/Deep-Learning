@@ -270,7 +270,7 @@ class Model:
                     fault = False
 
                 self.weights_values = backup_weights_values.copy()
-                weights_values_seq = c_double*len(self.weights_values)
+                weights_values_seq = c_type*len(self.weights_values)
                 self.c_weights_values = weights_values_seq(*self.weights_values)
             
             self.learning_rate *= Decimal("0." + 16*"9")
