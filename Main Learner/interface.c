@@ -112,17 +112,17 @@ double delu(double x) {
 	}
 }
 
-void softmax(int distance, int c_count, double *values){
+void softmax(int distance, int count, double *values){
 	double z, s;
 	s = 0;
 
-	for(int i = 0; i < c_count; i++){
+	for(int i = 0; i < count; i++){
 		z = pow(e, values[distance + i]);
 		values[distance + i] = z;
 		s += z;
 	}
 
-	for(int i = 0; i < c_count; i++) values[distance + i] /= s;
+	for(int i = 0; i < count; i++) values[distance + i] /= s;
 }
 
 double activate(int activation_value, double x) {
@@ -160,10 +160,10 @@ double activate(int activation_value, double x) {
 	}
 }
 
-void vectorctivate(int activation_value, int distance, int c_count, double *values) {
+void vectorctivate(int activation_value, int distance, int count, double *values) {
 	switch (activation_value) {
 		case 100:
-			softmax(distance, c_count, values);
+			softmax(distance, count, values);
 	}
 }
 

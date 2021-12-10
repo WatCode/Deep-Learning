@@ -153,7 +153,7 @@ __device__ float activate(int activation_value, float x) {
 }
 
 __device__ inline void protectedAddition(float* address, float value){
-    float old = value;  
+    float old = value; 
     float new_old;
 
     do{
@@ -195,16 +195,18 @@ __global__ void activateValue(float *values, int offset, int activation_value, i
 __global__ void vectorMatrixMultiply(float *values, int offset_previous, int previous_count, int offset_current, int current_count, float *weight_values, int offset_weight, int weight_count, int bias_count, int inclusive_count){
     int weight_index = blockIdx.x*blockDim.x + threadIdx.x;
     int previous_index = weight_index%inclusive_count;
-    int current_index = (weight_index + previous_index - inclusive_count)/inclusive_count;
+    int current_index = (weight_index - previous_index)/inclusive_count;
 
     if(current_index < current_count){
-        if(previous_index < previous_count && weight_index < weight_count){
-            protectedAddition(&values[offset_current + current_index], values[offset_previous + previous_index]*weight_values[offset_weight + weight_index]);
-            __syncthreads();
-        }
-        else{
-            protectedAddition(&values[offset_current + current_index], weight_values[offset_weight + weight_index]);
-            __syncthreads();
+        if(weight_index < weight_count){
+            if(previous_index < previous_count){
+                protectedAddition(&values[offset_current + current_index], values[offset_previous + previous_index]*weight_values[offset_weight + weight_index]);
+                //__syncthreads();
+            }
+            else{
+                protectedAddition(&values[offset_current + current_index], weight_values[offset_weight + weight_index]);
+                //__syncthreads();
+            }
         }
     }
 }
@@ -228,21 +230,23 @@ __global__ void vectorActivateMultiply(float *values, int offset, float *derivat
 __global__ void vectorMatrixAdjust(float *derivative_sum_values, int offset_derivative_next, int offset_derivative_current, float *weight_values, int offset_weight, int weight_count, float *values, int offset, int next_count, int current_count, int bias_count, int inclusive_count, float learning_rate){
     int weight_index = blockIdx.x*blockDim.x + threadIdx.x;
     int next_index = weight_index%inclusive_count;
-    int current_index = (weight_index + next_index - inclusive_count)/inclusive_count;
+    int current_index = (weight_index - next_index)/inclusive_count;
 
     if(current_index < current_count){
-        if(next_index < next_count && weight_index < weight_count){
-            if (offset_derivative_next >= zero) {
-                protectedAddition(&derivative_sum_values[offset_derivative_next + next_index], derivative_sum_values[offset_derivative_current + current_index]*weight_values[offset_weight + weight_index]);
-                __syncthreads();
-            }
+        if(weight_index < weight_count){
+            if(next_index < next_count){
+                if (offset_derivative_next >= zero) {
+                    protectedAddition(&derivative_sum_values[offset_derivative_next + next_index], derivative_sum_values[offset_derivative_current + current_index]*weight_values[offset_weight + weight_index]);
+                    //__syncthreads();
+                }
 
-            protectedAddition(&weight_values[offset_weight + weight_index], -(derivative_sum_values[offset_derivative_current + current_index]*values[offset + next_index]*learning_rate));
-            __syncthreads();
-        }
-        else{
-            protectedAddition(&weight_values[offset_weight + weight_index], -(derivative_sum_values[offset_derivative_current + current_index]*learning_rate));
-            __syncthreads();
+                protectedAddition(&weight_values[offset_weight + weight_index], -(derivative_sum_values[offset_derivative_current + current_index]*values[offset + next_index]*learning_rate));
+                //__syncthreads();
+            }
+            else{
+                protectedAddition(&weight_values[offset_weight + weight_index], -(derivative_sum_values[offset_derivative_current + current_index]*learning_rate));
+                //__syncthreads();
+            }
         }
     }
 }
@@ -353,29 +357,29 @@ __host__ void train(double min_diff, double learning_rate, int cycles, int line_
 
     float *d_values_train, *d_values_validate;
 
-    cudaMallocManaged(&d_values_train, (line_count_train * input_count + hidden_count + output_count)*size_of_float);
-    cudaMallocManaged(&d_values_validate, (line_count_validate * input_count + hidden_count + output_count)*size_of_float);
+    cudaMalloc(&d_values_train, (line_count_train * input_count + hidden_count + output_count)*size_of_float);
+    cudaMalloc(&d_values_validate, (line_count_validate * input_count + hidden_count + output_count)*size_of_float);
 
     cudaMemcpy(d_values_train, input_values_train, line_count_train*input_count*size_of_float, cudaMemcpyHostToDevice);
     cudaMemcpy(d_values_validate, input_values_validate, line_count_validate*input_count*size_of_float, cudaMemcpyHostToDevice);
 
     float *d_target_values_train, *d_target_values_validate;
 
-    cudaMallocManaged(&d_target_values_train, (line_count_train * output_count)*size_of_float);
-    cudaMallocManaged(&d_target_values_validate, (line_count_validate * output_count)*size_of_float);
+    cudaMalloc(&d_target_values_train, (line_count_train * output_count)*size_of_float);
+    cudaMalloc(&d_target_values_validate, (line_count_validate * output_count)*size_of_float);
 
     cudaMemcpy(d_target_values_train, target_values_train, (line_count_train * output_count)*size_of_float, cudaMemcpyHostToDevice);
     cudaMemcpy(d_target_values_validate, target_values_validate, (line_count_validate * output_count)*size_of_float, cudaMemcpyHostToDevice);
 
     float *d_weight_values;
 
-    cudaMallocManaged(&d_weight_values, weight_count*size_of_float);
+    cudaMalloc(&d_weight_values, weight_count*size_of_float);
 
     cudaMemcpy(d_weight_values, weight_values, weight_count*size_of_float, cudaMemcpyHostToDevice);
 
     float *derivative_sum_values;
 
-    cudaMallocManaged(&derivative_sum_values, (hidden_count + output_count)*size_of_float);
+    cudaMalloc(&derivative_sum_values, (hidden_count + output_count)*size_of_float);
 
 
     int output_offset_train = line_count_train*input_count + hidden_count;
@@ -385,7 +389,7 @@ __host__ void train(double min_diff, double learning_rate, int cycles, int line_
 
     float *d_sum;
 
-    cudaMallocManaged(&d_sum, size_of_float);
+    cudaMalloc(&d_sum, size_of_float);
 
     float *sum = (float*) malloc(size_of_float);
     float diff_value;
@@ -442,7 +446,7 @@ __host__ void train(double min_diff, double learning_rate, int cycles, int line_
         avg_diff_validate = 0;
 
         for(int line_num_validate = h_zero; line_num_validate < line_count_validate; line_num_validate++){
-            forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, d_values_train, d_weight_values);
+            forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, d_values_validate, d_weight_values);
 
             cudaMemset(d_sum, h_zero, size_of_float);
             target_offset = line_num_validate*output_count;
@@ -460,9 +464,9 @@ __host__ void train(double min_diff, double learning_rate, int cycles, int line_
 
         cycle++;
     }
-    
+    printf("%.16f\n", weight_values[0]);
     cudaMemcpy(weight_values, d_weight_values, weight_count*size_of_float, cudaMemcpyDeviceToHost);
-
+    printf("%.16f\n", weight_values[0]);
     cudaFree(d_values_train);
     cudaFree(d_values_validate);
 
@@ -490,19 +494,19 @@ __host__ void test(int line_count, float *input_values, float *output_values, in
 
     float *d_values;
 
-    cudaMallocManaged(&d_values, (line_count*input_count + hidden_count + output_count)*size_of_float);
+    cudaMalloc(&d_values, (line_count*input_count + hidden_count + output_count)*size_of_float);
 
     cudaMemcpy(d_values, input_values, line_count*input_count*size_of_float, cudaMemcpyHostToDevice);
 
     float *d_weight_values;
 
-    cudaMallocManaged(&d_weight_values, weight_count*size_of_float);
+    cudaMalloc(&d_weight_values, weight_count*size_of_float);
 
     cudaMemcpy(d_weight_values, weight_values, weight_count*size_of_float, cudaMemcpyHostToDevice);
 
     float *d_output_values;
 
-    cudaMallocManaged(&d_output_values, line_count*output_count*size_of_float);
+    cudaMalloc(&d_output_values, line_count*output_count*size_of_float);
 
     int vectorSize = ceil(output_count/blockSize);
 
