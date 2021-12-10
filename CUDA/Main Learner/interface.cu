@@ -117,8 +117,8 @@ __device__ float delu(float x) {
 	}
 }
 
-__device__ float activate(int activate_value, float x) {
-	switch (activate_value) {
+__device__ float activate(int activation_value, float x) {
+	switch (activation_value) {
 		case 0:
 			return swish(x);
 		case 1:
@@ -184,11 +184,11 @@ __global__ void setValue(float *values, int offset, float value, int count){
     }
 }
 
-__global__ void activateValue(float *values, int offset, int activate_value, int count){
+__global__ void activateValue(float *values, int offset, int activation_value, int count){
     int index = blockIdx.x*blockDim.x + threadIdx.x;
 
     if(index < count){
-        values[offset + index] = activate(activate_value, values[offset + index]);
+        values[offset + index] = activate(activation_value, values[offset + index]);
     }
 }
 
@@ -217,11 +217,11 @@ __global__ void vectorSubtract(float *target_values, int offset_target, float *o
     }
 }
 
-__global__ void vectorActivateMultiply(float *values, int offset, float *derivative_sum_values, int offset_derivative, int activate_value, int count){
+__global__ void vectorActivateMultiply(float *values, int offset, float *derivative_sum_values, int offset_derivative, int activation_value, int count){
     int index = blockIdx.x*blockDim.x + threadIdx.x;
 
     if(index < count){
-        derivative_sum_values[offset_derivative + index] *= activate(activate_value, values[offset + index]);
+        derivative_sum_values[offset_derivative + index] *= activate(activation_value, values[offset + index]);
     }
 }
 
@@ -255,7 +255,7 @@ __global__ void vectorCopy(float *source_values, int offset_source, float *dest_
     }
 }
 
-__host__ void forward(int line_count, int line_num, int *activate_values, int *hidden_sizes, int bias_count, int layer_count, float *values, float *weight_values){
+__host__ void forward(int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, float *values, float *weight_values){
     int previous_count, current_count;
 
     int previous_neuron_distance, current_neuron_distance;
@@ -284,7 +284,7 @@ __host__ void forward(int line_count, int line_num, int *activate_values, int *h
         vectorMatrixMultiply<<<matrixSize, blockSize>>>(values, previous_neuron_distance, previous_count, current_neuron_distance, current_count, weight_values, weight_distance, current_weight_count, bias_count, previous_count+bias_count);
         cudaDeviceSynchronize();
 
-        activateValue<<<vectorSize, blockSize>>>(values, current_neuron_distance, activate_values[layer_num], current_count);
+        activateValue<<<vectorSize, blockSize>>>(values, current_neuron_distance, activation_values[layer_num], current_count);
         cudaDeviceSynchronize();
 
         previous_neuron_distance = current_neuron_distance;
@@ -293,7 +293,7 @@ __host__ void forward(int line_count, int line_num, int *activate_values, int *h
     }
 }
 
-__host__ void backward(float learning_rate, int line_count, int line_num, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, int layer_count, float *derivative_sum_values, float *values, float *target_values, float *weight_values){
+__host__ void backward(int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, float *derivative_sum_values, float *values, float *target_values, float *weight_values, float learning_rate){
 	int current_count, next_count;
 
 	int current_neuron_distance, next_neuron_distance;
@@ -336,7 +336,7 @@ __host__ void backward(float learning_rate, int line_count, int line_num, int *a
             cudaDeviceSynchronize();
         }
 
-		vectorActivateMultiply<<<vectorSize, blockSize>>>(values, current_neuron_distance, derivative_sum_values, derivative_neuron_distance, activate_values[layer_num-1]+1, current_count);
+		vectorActivateMultiply<<<vectorSize, blockSize>>>(values, current_neuron_distance, derivative_sum_values, derivative_neuron_distance, activation_values[layer_num-1]+1, current_count);
         cudaDeviceSynchronize();
 
 		vectorMatrixAdjust<<<matrixSize, blockSize>>>(derivative_sum_values, derivative_neuron_distance-next_count, derivative_neuron_distance, weight_values, weight_distance, current_weight_count, values, next_neuron_distance, next_count, current_count, bias_count, next_count+bias_count, learning_rate);
@@ -347,25 +347,25 @@ __host__ void backward(float learning_rate, int line_count, int line_num, int *a
 	}
 }
 
-__host__ void train(float min_diff, float learning_rate, int cycles, int line_count_train, float *input_values_train, float *target_values_train, int line_count_test, float *input_values_test, float *target_values_test, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, float *weight_values) {
+__host__ void train(double min_diff, double learning_rate, int cycles, int line_count_train, double *input_values_train, double *target_values_train, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
     int input_count = hidden_sizes[0];
     int output_count = hidden_sizes[layer_count+1];
 
-    float *d_values_train, *d_values_test;
+    float *d_values_train, *d_values_validate;
 
     cudaMallocManaged(&d_values_train, (line_count_train * input_count + hidden_count + output_count)*size_of_float);
-    cudaMallocManaged(&d_values_test, (line_count_test * input_count + hidden_count + output_count)*size_of_float);
+    cudaMallocManaged(&d_values_validate, (line_count_validate * input_count + hidden_count + output_count)*size_of_float);
 
     cudaMemcpy(d_values_train, input_values_train, line_count_train*input_count*size_of_float, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_values_test, input_values_test, line_count_test*input_count*size_of_float, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_values_validate, input_values_validate, line_count_validate*input_count*size_of_float, cudaMemcpyHostToDevice);
 
-    float *d_target_values_train, *d_target_values_test;
+    float *d_target_values_train, *d_target_values_validate;
 
     cudaMallocManaged(&d_target_values_train, (line_count_train * output_count)*size_of_float);
-    cudaMallocManaged(&d_target_values_test, (line_count_test * output_count)*size_of_float);
+    cudaMallocManaged(&d_target_values_validate, (line_count_validate * output_count)*size_of_float);
 
     cudaMemcpy(d_target_values_train, target_values_train, (line_count_train * output_count)*size_of_float, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_target_values_test, target_values_test, (line_count_test * output_count)*size_of_float, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_target_values_validate, target_values_validate, (line_count_validate * output_count)*size_of_float, cudaMemcpyHostToDevice);
 
     float *d_weight_values;
 
@@ -379,7 +379,7 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
 
 
     int output_offset_train = line_count_train*input_count + hidden_count;
-    int output_offset_test = line_count_test*input_count + hidden_count;
+    int output_offset_validate = line_count_validate*input_count + hidden_count;
 
     int target_offset;
 
@@ -391,7 +391,7 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
     float diff_value;
 
     float avg_diff_train = min_diff;
-    float avg_diff_test = min_diff;
+    float avg_diff_validate = min_diff;
 
     float *prev_diff_values = (float*) malloc(line_count_train);
     float *prev_prev_diff_values = (float*) malloc(line_count_train);
@@ -412,8 +412,8 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
         avg_diff_train = 0;
 
         for (int line_num_train = h_zero; line_num_train < line_count_train; line_num_train++) {
-            forward(line_count_train, line_num_train, activate_values, hidden_sizes, bias_count, layer_count, d_values_train, d_weight_values);
-            backward(learning_rate_values[line_num_train], line_count_train, line_num_train, activate_values, hidden_sizes, hidden_count, bias_count, weight_count, layer_count, derivative_sum_values, d_values_train, d_target_values_train, d_weight_values);
+            forward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, d_values_train, d_weight_values);
+            backward(line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, hidden_count, weight_count, derivative_sum_values, d_values_train, d_target_values_train, d_weight_values, learning_rate_values[line_num_train]);
 
             cudaMemset(d_sum, h_zero, size_of_float);
             target_offset = line_num_train*output_count;
@@ -439,24 +439,24 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
 
         avg_diff_train /= line_count_train;
 
-        avg_diff_test = 0;
+        avg_diff_validate = 0;
 
-        for(int line_num_test = h_zero; line_num_test < line_count_test; line_num_test++){
-            forward(line_count_test, line_num_test, activate_values, hidden_sizes, bias_count, layer_count, d_values_test, d_weight_values);
+        for(int line_num_validate = h_zero; line_num_validate < line_count_validate; line_num_validate++){
+            forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, d_values_train, d_weight_values);
 
             cudaMemset(d_sum, h_zero, size_of_float);
-            target_offset = line_num_test*output_count;
-            varyfind<<<vectorSize, blockSize>>>(d_values_test, output_offset_test, d_target_values_test, target_offset, d_sum, output_count);
+            target_offset = line_num_validate*output_count;
+            varyfind<<<vectorSize, blockSize>>>(d_values_validate, output_offset_validate, d_target_values_validate, target_offset, d_sum, output_count);
             cudaDeviceSynchronize();
             cudaMemcpy(sum, d_sum, size_of_float, cudaMemcpyDeviceToHost);
 
             diff_value = sum[0]/output_count;
-            avg_diff_test += diff_value;
+            avg_diff_validate += diff_value;
         }
 
-        avg_diff_test /= line_count_test;
+        avg_diff_validate /= line_count_validate;
 
-        printf("%.16f : %.16f\n", avg_diff_train, avg_diff_test);
+        printf("%.16f : %.16f\n", avg_diff_train, avg_diff_validate);
 
         cycle++;
     }
@@ -464,10 +464,10 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
     cudaMemcpy(weight_values, d_weight_values, weight_count*size_of_float, cudaMemcpyDeviceToHost);
 
     cudaFree(d_values_train);
-    cudaFree(d_values_test);
+    cudaFree(d_values_validate);
 
     cudaFree(d_target_values_train);
-    cudaFree(d_target_values_test);
+    cudaFree(d_target_values_validate);
     
     cudaFree(d_weight_values);
 
@@ -483,7 +483,8 @@ __host__ void train(float min_diff, float learning_rate, int cycles, int line_co
     free(sum);
 }
 
-__host__ void test(int line_count, float *input_values, int layer_count, int *activate_values, int *hidden_sizes, int hidden_count, int bias_count, int weight_count, float *weight_values, float *output_values){
+
+__host__ void test(int line_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
     int input_count = hidden_sizes[0];
     int output_count = hidden_sizes[layer_count+1];
 
@@ -506,7 +507,7 @@ __host__ void test(int line_count, float *input_values, int layer_count, int *ac
     int vectorSize = ceil(output_count/blockSize);
 
     for (int line_num = h_zero; line_num < line_count; line_num++) {
-        forward(line_count, line_num, activate_values, hidden_sizes, bias_count, layer_count, d_values, d_weight_values);
+        forward(line_count, line_num, activation_values, hidden_sizes, layer_count, bias_count, d_values, d_weight_values);
 
         vectorCopy<<<vectorSize, blockSize>>>(d_values, line_count*input_count + hidden_count, d_output_values, line_num*output_count, output_count);
         cudaDeviceSynchronize();
