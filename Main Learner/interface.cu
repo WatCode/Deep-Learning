@@ -428,9 +428,9 @@ __host__ void train(double min_diff, double learning_rate, int cycles, int line_
             diff_value = sum[0]/output_count;
             avg_diff_train += diff_value;
 
-            learning_rate_coefficient = fabs((prev_diff_values[line_num_train]-prev_prev_diff_values[line_num_train])/(diff_value-prev_diff_values[line_num_train]));
+            learning_rate_coefficient = fabs(((prev_diff_values[line_num_train]-prev_prev_diff_values[line_num_train])/prev_prev_diff_values[line_num_train])/((diff_value-prev_diff_values[line_num_train])/prev_diff_values[line_num_train]));
 
-            if(cycle > h_one && diff_value != prev_diff_values[line_num_train] && prev_diff_values[line_num_train] != prev_prev_diff_values[line_num_train] && learning_rate_coefficient < 2.0){
+            if(cycle > h_one && diff_value != prev_diff_values[line_num_train] && prev_diff_values[line_num_train] != prev_prev_diff_values[line_num_train] && learning_rate_coefficient < 1.1){
                 learning_rate_values[line_num_train] *= learning_rate_coefficient;
             }
             else{
