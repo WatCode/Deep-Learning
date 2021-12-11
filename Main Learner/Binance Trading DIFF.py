@@ -132,6 +132,7 @@ while True:
     print(C2_balance*C2USDT_rate)
     print(USDT_value)
     print(fees_paid)
+    print(USDT_value+fees_paid)
     print("\n")
     
     plt.clf()
