@@ -108,7 +108,7 @@ while True:
                 all_positive = False
                 break
 
-    proportion = (abs(compounded_change[index])-trade_fees)/trade_fees
+    proportion = (abs(compounded_change[index-1])-trade_fees)/trade_fees
     
     if proportion > 1:
         proportion = Decimal(1)
@@ -127,7 +127,7 @@ while True:
     USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
     print(index)
-    print(compounded_change[index])
+    print(compounded_change[index-1])
     print(C1_balance*C1USDT_rate)
     print(C2_balance*C2USDT_rate)
     print(USDT_value)
