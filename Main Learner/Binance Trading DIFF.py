@@ -6,8 +6,8 @@ from time import *
 
 getcontext().prec = 64
 
-model_name = input("Name of model: ")
-model_count = int(input("Number of models: "))
+model_name = input("Model name: ")
+model_count = int(input("Model count: "))
 
 Trade_Models = []
 
@@ -22,6 +22,8 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
+ticker = "ETHBTC"
+
 trade_fees = Decimal(0.00075)
 
 USDT_balance = Decimal(1000)
@@ -32,17 +34,20 @@ fees_paid = Decimal(0)
 
 predicted_count = 120
 
+average_size = 10
+
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
-    klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
+    klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     
-    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-10:]]
+    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-average_size:]]
     
     change_prices = [previous_prices[i+1]-previous_prices[i] for i in range(len(previous_prices)-1)]
-    moving_average_change = [sum(change_prices[i:i+10])/Decimal(10) for i in range(len(change_prices)-9)]
     
-    y_values = previous_prices[10:]
+    moving_average_change = [sum(change_prices[i:i+average_size])/Decimal(average_size) for i in range(len(change_prices)-average_size+1)]
+    
+    y_values = previous_prices[average_size:]
     
     Trade_Data.load([], [], [], [], moving_average_change, [])
     

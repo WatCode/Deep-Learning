@@ -6,8 +6,8 @@ from time import *
 
 getcontext().prec = 64
 
-model_name = input("Name of model: ")
-model_count = int(input("Number of models: "))
+model_name = input("Model name: ")
+model_count = int(input("Model count: "))
 
 Trade_Models = []
 

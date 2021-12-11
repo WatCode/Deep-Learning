@@ -341,7 +341,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     }
 
     for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
-      forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
+      forward(line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
       
       diff_validate = varyfind(line_count_validate, line_num_validate, input_count, hidden_count, output_count, target_values_validate, values_validate);
       avg_diff_validate += diff_validate;

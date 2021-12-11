@@ -7,7 +7,9 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-klines = client.get_historical_klines("BTCUSDT", Client.KLINE_INTERVAL_1MINUTE, "70 days ago UTC")
+ticker = "BTCUSDT"
+
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "70 days ago UTC")
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 
@@ -27,12 +29,12 @@ for i in range(line_count):
     to_write = ",".join(close_ratio[i:i+input_size]) + ":" + ",".join(close_ratio[i+input_size:i+input_size+output_size]) + "\n"
 
     if i%2 == 0:
-        filew = open("BTCRATIO" + str(model_num) + "TRAIN.txt", "a")
+        filew = open(ticker + "RATIO" + str(model_num) + "TRAIN.txt", "a")
     else:
-        filew = open("BTCRATIO" + str(model_num) + "VALIDATE.txt", "a")
+        filew = open(ticker + "RATIO" + str(model_num) + "VALIDATE.txt", "a")
     filew.write(to_write)
     filew.close()
     
-    filew = open("BTCRATIO" + str(model_num) + "TEST.txt", "a")
+    filew = open(ticker + "RATIO" + str(model_num) + "TEST.txt", "a")
     filew.write(to_write)
     filew.close()
