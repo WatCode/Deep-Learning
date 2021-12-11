@@ -26,7 +26,9 @@ ticker = "ETHBTC"
 
 trade_fees = Decimal(0.000)
 
-C1_balance = Decimal(100)
+USDT_principal = Decimal(100)
+
+C1_balance = Decimal(0)
 C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
@@ -37,6 +39,8 @@ average_size = 10
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
+i = 0
+
 while True:
     C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
@@ -44,6 +48,9 @@ while True:
     
     C1USDT_rate = Decimal(C1USDT_klines[-1][4])
     C2USDT_rate = Decimal(C2USDT_klines[-1][4])
+    
+    if i == 0:
+        C1_balance += USDT_principal/C1USDT_rate
     
     previous_rates = [Decimal(element[4]) for element in C1C2_klines[-Trade_Models[0].input_count-average_size:]]
     
@@ -132,4 +139,6 @@ while True:
     plt.plot(x_values[:-predicted_count], previous_rates[average_size:])
     plt.pause(0.01)
 
+    i += 1
+    
 plt.show()
