@@ -24,12 +24,11 @@ client = Client(api_key, secret_key)
 
 ticker = "ETHBTC"
 
-trade_fees = Decimal(0.00075)
+trade_fees = Decimal(0.000)
 
-USDT_balance = Decimal(1000)
-BTC_balance = Decimal(0)
+C1_balance = Decimal(100)
+C2_balance = Decimal(0)
 
-USDT_invested = Decimal(0)
 fees_paid = Decimal(0)
 
 predicted_count = 60
@@ -39,17 +38,24 @@ average_size = 10
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
-    klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
+    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
+    C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
+    C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
-    previous_prices = [Decimal(element[4]) for element in klines[-Trade_Models[0].input_count-average_size:]]
+    C1USDT_rate = Decimal(C1USDT_klines[-1][4])
+    C2USDT_rate = Decimal(C2USDT_klines[-1][4])
     
-    change_prices = [previous_prices[i+1]-previous_prices[i] for i in range(len(previous_prices)-1)]
+    previous_rates = [Decimal(element[4]) for element in C1C2_klines[-Trade_Models[0].input_count-average_size:]]
     
-    moving_average_change = [sum(change_prices[i:i+average_size])/Decimal(average_size) for i in range(len(change_prices)-average_size+1)]
+    change_rates = [previous_rates[i+1]-previous_rates[i] for i in range(len(previous_rates)-1)]
     
-    y_values = previous_prices[average_size:]
+    moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
     
-    Trade_Data.load([], [], [], [], moving_average_change, [])
+    moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    
+    y_values = moving_average_previous_rates
+    
+    Trade_Data.load([], [], [], [], moving_average_change_rates, [])
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -62,13 +68,10 @@ while True:
     for i in range(predicted_count):
         recursive_output_values[i] /= Decimal(model_count)
     
-    net_change = Decimal(0)
     compounded_change = []
     
     for change in recursive_output_values:
-        net_change += change
-        
-        compounded_change.append(net_change/previous_prices[-1])
+        compounded_change.append(Decimal(1)-(previous_rates[-1]/y_values[-1]))
         y_values.append(y_values[-1]+change)
     
     proportion = Decimal(1)
@@ -76,7 +79,7 @@ while True:
     if proportion > 1:
         proportion = Decimal(1)
     
-    BTCUSDT_rate = previous_prices[-1]
+    C1C2_rate = previous_rates[-1]
         
     all_positive = False
     all_negative = False
@@ -104,31 +107,29 @@ while True:
                 break
     
     if all_positive:
-        fees_paid += trade_fees*(proportion*USDT_balance)
+        fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
         
-        BTC_balance += (Decimal(1)-trade_fees)*((proportion*USDT_balance)/BTCUSDT_rate)
-        USDT_invested += proportion*USDT_balance
-        USDT_balance *= (Decimal(1)-proportion)
+        C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
+        C2_balance *= (Decimal(1)-proportion)
     if all_negative:
-        if BTC_balance > 0 and (Decimal(1)-trade_fees)*BTCUSDT_rate >= USDT_invested/BTC_balance:
-            fees_paid += trade_fees*((proportion*BTC_balance)*BTCUSDT_rate)
-            
-            USDT_balance += (Decimal(1)-trade_fees)*((proportion*BTC_balance)*BTCUSDT_rate)
-            USDT_invested -= (Decimal(1)-trade_fees)*((proportion*BTC_balance)*BTCUSDT_rate)
-            BTC_balance *= (Decimal(1)-proportion)
+        fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
+        
+        C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
+        C1_balance *= (Decimal(1)-proportion)
+        
+    USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
     print(index)
     print(compounded_change[-1])
-    print(USDT_balance)
-    print(BTC_balance*BTCUSDT_rate)
-    print(USDT_balance+BTC_balance*BTCUSDT_rate)
+    print(C1_balance*C1USDT_rate)
+    print(C2_balance*C2USDT_rate)
+    print(USDT_value)
     print(fees_paid)
     print("\n")
     
-    #sleep(1)
-    
     plt.clf()
     plt.plot(x_values, y_values)
+    plt.plot(x_values[:-predicted_count], previous_rates[average_size:])
     plt.pause(0.01)
 
 plt.show()

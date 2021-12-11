@@ -9,7 +9,7 @@ client = Client(api_key, secret_key)
 
 ticker = "ETHBTC"
 
-klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "50 days ago UTC")
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "20 days ago UTC")
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 
@@ -21,7 +21,7 @@ moving_average_diff = [str(sum(close_diff[i:i+average_size])/Decimal(average_siz
 input_size = 300
 output_size = 10
 
-model_count = 10
+model_count = 1
 
 line_count = len(moving_average_diff)-input_size-output_size
 
