@@ -24,7 +24,7 @@ client = Client(api_key, secret_key)
 
 ticker = "ETHBTC"
 
-trade_fees = Decimal(0.000)
+trade_fees = Decimal(0.00075)
 
 USDT_principal = Decimal(100)
 
@@ -81,11 +81,6 @@ while True:
         compounded_change.append(Decimal(1)-(previous_rates[-1]/y_values[-1]))
         y_values.append(y_values[-1]+change)
     
-    proportion = Decimal(1)
-    
-    if proportion > 1:
-        proportion = Decimal(1)
-    
     C1C2_rate = previous_rates[-1]
         
     all_positive = False
@@ -112,6 +107,11 @@ while True:
             if change < 0:
                 all_positive = False
                 break
+
+    proportion = (abs(compounded_change[index])-trade_fees)/trade_fees
+    
+    if proportion > 1:
+        proportion = Decimal(1)
     
     if all_positive:
         fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
@@ -127,7 +127,7 @@ while True:
     USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
     print(index)
-    print(compounded_change[-1])
+    print(compounded_change[index])
     print(C1_balance*C1USDT_rate)
     print(C2_balance*C2USDT_rate)
     print(USDT_value)
