@@ -32,7 +32,7 @@ BTC_balance = Decimal(0)
 USDT_invested = Decimal(0)
 fees_paid = Decimal(0)
 
-predicted_count = 120
+predicted_count = 60
 
 average_size = 10
 
