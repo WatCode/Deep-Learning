@@ -26,7 +26,7 @@ ticker = "ETHBTC"
 
 trade_fees = Decimal(0.00075)
 
-USDT_principal = Decimal(100)
+USDT_principal = Decimal(100.82)
 
 C1_balance = Decimal(0)
 C2_balance = Decimal(0)
@@ -56,8 +56,11 @@ while True:
     
     C1C2_rate = previous_rates[-1]
 
-    C1USDT_rate = Decimal(C1USDT_klines[0][4])
-    C2USDT_rate = Decimal(C2USDT_klines[0][4])
+    try:
+        C1USDT_rate = Decimal(C1USDT_klines[0][4])
+        C2USDT_rate = Decimal(C2USDT_klines[0][4])
+    except:
+        continue
     
     if start_flag:
         C1_balance += USDT_principal/C1USDT_rate
