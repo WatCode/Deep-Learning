@@ -33,7 +33,7 @@ C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
 
-predicted_count = 60
+predicted_count = 45
 
 average_size = 10
 
@@ -42,7 +42,7 @@ x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 i = 0
 
 while True:
-    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
+    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "24 hours ago UTC")
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
@@ -126,13 +126,13 @@ while True:
         
     USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
-    print(index)
-    print(compounded_change[index-1])
-    print(C1_balance*C1USDT_rate)
-    print(C2_balance*C2USDT_rate)
-    print(USDT_value)
-    print(fees_paid)
-    print(USDT_value+fees_paid)
+    print("Minutes: " + str(index))
+    print("Price change: " + str(float(compounded_change[index-1])))
+    print(ticker[:3] + " value in USDT: " + str(float(C1_balance*C1USDT_rate)))
+    print(ticker[-3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
+    print("Total value in USDT: " + str(float(USDT_value)))
+    print("Total fees paid in USDT: " + str(float(fees_paid)))
+    print("Total value generated in USDT: " + str(float(USDT_value+fees_paid)))
     print("\n")
     
     plt.clf()
