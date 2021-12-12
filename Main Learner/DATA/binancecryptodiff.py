@@ -9,7 +9,7 @@ client = Client(api_key, secret_key)
 
 ticker = "ETHBTC"
 
-klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "20 days ago UTC")
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "2 days ago UTC")
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 

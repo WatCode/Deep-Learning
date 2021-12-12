@@ -46,8 +46,8 @@ while True:
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
-    C1USDT_rate = Decimal(C1USDT_klines[-1][4])
-    C2USDT_rate = Decimal(C2USDT_klines[-1][4])
+    C1USDT_rate = Decimal(C1USDT_klines[0][4])
+    C2USDT_rate = Decimal(C2USDT_klines[0][4])
     
     if i == 0:
         C1_balance += USDT_principal/C1USDT_rate
