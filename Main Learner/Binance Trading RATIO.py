@@ -37,32 +37,32 @@ predicted_count = 90
 
 average_size = 10
 
-x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
+start_flag = True
 
-i = 0
+x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
     C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
+    previous_rates = [Decimal(element[4]) for element in C1C2_klines[-Trade_Models[0].input_count-average_size:]]
+    change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
+
+    moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    
+    y_values = moving_average_previous_rates.copy()
+    
+    C1C2_rate = previous_rates[-1]
+
     C1USDT_rate = Decimal(C1USDT_klines[0][4])
     C2USDT_rate = Decimal(C2USDT_klines[0][4])
     
-    if i == 0:
+    if start_flag:
         C1_balance += USDT_principal/C1USDT_rate
-    
-    previous_rates = [Decimal(element[4]) for element in C1C2_klines[-Trade_Models[0].input_count-average_size:]]
-    
-    change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
-    
-    moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
-    
-    moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
-    
-    y_values = moving_average_previous_rates
-    
-    C1C2_rate = previous_rates[-1]
+        
+        start_flag = False
     
     Trade_Data.load([], [], [], [], moving_average_change_rates, [])
     
@@ -78,20 +78,25 @@ while True:
         recursive_output_values[i] /= Decimal(model_count)
     
     compounded_moving_change = []
-    net_change = Decimal(1)
+    compounded_multiplier = Decimal(1)
     
-    for change in recursive_output_values:
-        net_change *= change
+    for multiplier in recursive_output_values:
+        compounded_multiplier *= multiplier
         
-        y_values.append(y_values[-1]*change)
-        compounded_moving_change.append(net_change-Decimal(1))
-    
+        y_values.append(y_values[-1]*multiplier)
+        compounded_moving_change.append(compounded_multiplier-Decimal(1))
+        
+    compounded_actual_change = []
+
+    for change in compounded_moving_change:
+        compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
+
     moving_index = 0
     
     for change in compounded_moving_change:
-        if change < -trade_fees:
-            break
         if change > trade_fees:
+            break
+        if change < -trade_fees:
             break
             
         moving_index += 1
@@ -102,23 +107,23 @@ while True:
     actual_index = 0
     
     for change in compounded_actual_change:
-        if change < -trade_fees:
-            all_negative = True
-            break
         if change > trade_fees:
             all_positive = True
+            break
+        if change < -trade_fees:
+            all_negative = True
             break
             
         actual_index += 1
     
     for change in compounded_moving_change[:actual_index]:
-        if all_negative:
-            if change > 0:
-                all_negative = False
-                break
         if all_positive:
             if change < 0:
                 all_positive = False
+                break
+        if all_negative:
+            if change > 0:
+                all_negative = False
                 break
         
     proportion = (abs(compounded_actual_change[actual_index])-trade_fees)/trade_fees
@@ -154,7 +159,5 @@ while True:
     plt.plot(x_values, y_values)
     plt.plot(x_values[:-predicted_count], previous_rates[average_size:])
     plt.pause(0.01)
-
-    i += 1
     
 plt.show()
