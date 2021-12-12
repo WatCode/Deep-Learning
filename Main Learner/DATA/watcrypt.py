@@ -2,28 +2,25 @@ from decimal import *
 from random import *
 
 k1 = Decimal(1.3949867209205726765)
-k2 = Decimal(0.2834739513647389458)
-k3 = Decimal(0.3829249028428461492)
-k4 = Decimal(0.4856829189385472123)
 
 filew = open("WATCRYPTTRAIN.txt", "w")
 
 to_write = ""
 
-for i in range(10):
-    k0 = Decimal(random())
+for i in range(500):
+    k0 = Decimal(random()+0.5)
     
     for i in range(10):
-        p1 = Decimal(random())
-        o1 = p1*k1+k0
+        p1 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
     
-    p1 = Decimal(random())
+    p1 = Decimal(random()+0.5)
     
     for i in range(10):
-        k0 = Decimal(random())
-        o1 = p1*k1+k0
+        k0 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
 
@@ -34,20 +31,20 @@ filew = open("WATCRYPTVALIDATE.txt", "w")
 
 to_write = ""
 
-for i in range(10):
-    k0 = Decimal(random())
+for i in range(500):
+    k0 = Decimal(random()+0.5)
     
     for i in range(10):
-        p1 = Decimal(random())
-        o1 = p1*k1+k0
+        p1 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
     
-    p1 = Decimal(random())
+    p1 = Decimal(random()+0.5)
     
     for i in range(10):
-        k0 = Decimal(random())
-        o1 = p1*k1+k0
+        k0 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
 
@@ -58,20 +55,20 @@ filew = open("WATCRYPTTEST.txt", "w")
 
 to_write = ""
 
-for i in range(10):
-    k0 = Decimal(random())
+for i in range(500):
+    k0 = Decimal(random()+0.5)
     
     for i in range(10):
-        p1 = Decimal(random())
-        o1 = p1*k1+k0
+        p1 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
     
-    p1 = Decimal(random())
+    p1 = Decimal(random()+0.5)
     
     for i in range(10):
-        k0 = Decimal(random())
-        o1 = p1*k1+k0
+        k0 = Decimal(random()+0.5)
+        o1 = (p1*k0)**k1
 
         to_write += str(p1) + "," + str(k0) + ":" + str(o1) + "\n"
 
