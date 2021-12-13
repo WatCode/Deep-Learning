@@ -118,6 +118,11 @@ while True:
             break
             
         actual_index += 1
+        
+    if moving_index == len(compounded_moving_change):
+        moving_index -= 1
+    if actual_index == len(compounded_actual_change):
+        actual_index -= 1
     
     for change in compounded_moving_change[:actual_index]:
         if all_positive:
