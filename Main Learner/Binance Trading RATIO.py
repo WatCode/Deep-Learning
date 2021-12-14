@@ -62,9 +62,6 @@ while True:
     except:
         continue
     
-    print(C1USDT_rate)
-    print(C1C2_rate*C2USDT_rate)
-    
     if start_flag:
         C1_balance += USDT_principal/C1USDT_rate
         

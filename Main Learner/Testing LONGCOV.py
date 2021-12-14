@@ -15,7 +15,7 @@ Model0.test(Data0)
 print(Model0.output_values)
 
 new_output_values = []
-avg_value = sum(Model0.output_values)/Decimal(len(Model0.output_values))
+avg_value = sorted(Model0.output_values)[int(len(Model0.output_values)/2)]
 
 count = 0
 total = 0

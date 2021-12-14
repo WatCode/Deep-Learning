@@ -1,3 +1,5 @@
+from random import *
+
 filer = open("LONGCOVRAW.txt", "r").read().split("\n")
 
 lines = []
@@ -6,6 +8,8 @@ for line in filer[1:]:
     line_split = line.split(",")
     
     lines.append(",".join(line_split[1:25]) + ":" + ",".join(line_split[25:]))
+
+shuffle(lines)
 
 to_write_train = ""
 to_write_validate = ""
