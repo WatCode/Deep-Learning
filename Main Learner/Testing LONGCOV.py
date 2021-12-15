@@ -56,7 +56,12 @@ total_negative = 0
 for i in range(len(Model0.output_values)):
     symptom_num = i%symptom_count
     
-    if Model0.output_values[i] >= symptom_output_values[symptom_num][-int(Decimal(1.3)*symptom_average_threshold_vector[symptom_num]*len(symptom_output_values[symptom_num]))]:
+    proportion_index = int(Decimal(1.425)*symptom_average_threshold_vector[symptom_num]*len(symptom_output_values[symptom_num]))
+    
+    if proportion_index > len(symptom_output_values[symptom_num]):
+        proportion_index = len(symptom_output_values[symptom_num])
+    
+    if Model0.output_values[i] >= symptom_output_values[symptom_num][-proportion_index]:
         new_output_values.append(Decimal(1))
     else:
         new_output_values.append(Decimal(0))
