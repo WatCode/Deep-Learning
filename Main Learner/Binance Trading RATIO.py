@@ -26,6 +26,8 @@ ticker = "ETHBTC"
 
 trade_fees = Decimal(0.00075)
 
+proportionality_constant = Decimal(0.001)
+
 USDT_principal = Decimal(100)
 
 C1_balance = Decimal(0)
@@ -134,7 +136,7 @@ while True:
                 all_negative = False
                 break
         
-    proportion = (abs(compounded_actual_change[actual_index])-trade_fees)/trade_fees
+    proportion = (abs(compounded_actual_change[actual_index])-proportionality_constant)/proportionality_constant
     
     if proportion > 1:
         proportion = Decimal(1)

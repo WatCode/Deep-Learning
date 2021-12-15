@@ -4,7 +4,7 @@ data_name = input("Data name: ")
 model_name = input("Model name: ")
 
 Model0 = Model()
-Model0.load(model_name, min_diff=0.00001, learning_rate=0.003, cycles=40, hidden_shaped=False, normaliser_depth=0)
+Model0.load(model_name, min_diff=0.00001, learning_rate=0.0000001, cycles=15, hidden_shaped=False, normaliser_depth=0)
 
 Data0 = Data(Model0.input_count)
 Data0.extractall(data_name)
