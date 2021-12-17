@@ -35,7 +35,7 @@ C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
 
-predicted_count = 90
+predicted_count = 250
 
 average_size = 10
 
@@ -44,17 +44,26 @@ start_flag = True
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
-    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 hours ago UTC")
+    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "12 hours ago UTC")
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
-    previous_rates = [Decimal(element[4]) for element in C1C2_klines[-Trade_Models[0].input_count-average_size:]]
+    previous_rates = [Decimal(element[4]) for element in C1C2_klines]
     change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
 
-    moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(previous_rates)-average_size+1)]
     moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
     
-    y_values = moving_average_previous_rates.copy()
+    input_values = []
+    target_values = []
+    
+    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
+        input_values += moving_average_change_rates[i:i+Trade_Models[0].input_count]
+    
+    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
+        target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
+
+    y_values = moving_average_previous_rates[-Trade_Models[0].input_count:]
     
     C1C2_rate = previous_rates[-1]
 
@@ -69,7 +78,7 @@ while True:
         
         start_flag = False
     
-    Trade_Data.load([], [], [], [], moving_average_change_rates, [])
+    Trade_Data.load([], [], [], [], input_values, target_values)
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -167,7 +176,7 @@ while True:
     
     plt.clf()
     plt.plot(x_values, y_values)
-    plt.plot(x_values[:-predicted_count], previous_rates[average_size:])
+    plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
     plt.pause(0.01)
     
 plt.show()

@@ -366,6 +366,18 @@ class Model:
             self.output_values = self.NModel.output_values
 
     def recursive_test(self, Data, loop_count, feedback_count):
+        coefficient_values = [Decimal(1) for i in range(self.output_count)]
+
+        if len(Data.target_values_test) > 0:
+            self.test(Data)
+            
+            coefficient_values = [Decimal(0) for i in range(self.output_count)]
+            
+            for i in range(len(Data.target_values_test)):
+                coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])
+                
+            coefficient_values = [value/Decimal(len(Data.target_values_test)/self.output_count) for value in coefficient_values]
+        
         self.recursive_output_values = Data.input_values_test[:self.input_count]
         
         for i in range(int(len(Data.target_values_test)/self.output_count)):
@@ -376,6 +388,8 @@ class Model:
         for i in range(loop_count):
             Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
             self.test(Data, test_mode=True)
+            
+            self.output_values = [self.output_values[j]*coefficient_values[j] for j in range(self.output_count)]
 
             if i == 0:
                 pooled_output_values = self.output_values.copy()
