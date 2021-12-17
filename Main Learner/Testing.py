@@ -11,3 +11,5 @@ Data0 = Data(Model0.input_count)
 Data0.extractall(data_name)
 
 Model0.test(Data0)
+
+print(Model0.output_values)
