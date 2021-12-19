@@ -320,11 +320,11 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
       change_coefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
 
       if(diff_train > diff_values[line_num_train]){
-        change_coefficient = 0.1;
+        change_coefficient = 0.9;
       }
 
-      if(change_coefficient > 1.2){
-        change_coefficient = 1.2;
+      if(change_coefficient > 1.1){
+        change_coefficient = 1.1;
       }
 
       if(cycle > one && diff_train != diff_values[line_num_train] && diff_values[line_num_train] != prev_diff_values[line_num_train]){

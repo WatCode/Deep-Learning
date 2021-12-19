@@ -35,7 +35,7 @@ C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
 
-predicted_count = 250
+predicted_count = 90
 
 average_size = 10
 

@@ -30,7 +30,7 @@ for line in filer[1:]:
             finally:
                 iso_data[line_split[0]][heading_list[i]].append(value)
 
-target_headings = ["new_cases_smoothed_per_million"]
+target_headings = ["new_cases_smoothed_per_million", "new_deaths_smoothed_per_million"]
 
 normalised_iso_data = {iso:{heading:[] for heading in target_headings} for iso in iso_list}
 

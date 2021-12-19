@@ -10,15 +10,15 @@ Model0.load(model_name)
 Data0 = Data(Model0.input_count)
 Data0.extractall(data_name)
 
-header_count = 1
+header_count = 2
 
-Model0.recursive_test(Data0, 200, header_count)
+Model0.recursive_test(Data0, 300, header_count)
 
 header_values = [[Model0.recursive_output_values[j*header_count+i] for j in range(int(len(Model0.recursive_output_values)/header_count))] for i in range(header_count)]
 
 x_values = [i for i in range(int(len(Model0.recursive_output_values)/header_count))]
 
-#fig, axs = plt.subplots(header_count)
+fig, axs = plt.subplots(header_count)
 
 for i in range(header_count):
     y_values = []
@@ -28,6 +28,6 @@ for i in range(header_count):
         y_values.append(value)
         cumulative_change += value
     
-    plt.plot(x_values, y_values)
+    axs[i].plot(x_values, y_values)
 
 plt.show()
