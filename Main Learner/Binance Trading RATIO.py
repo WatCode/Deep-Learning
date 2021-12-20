@@ -86,10 +86,7 @@ while True:
         Trade_Models[i].recursive_test(Trade_Data, predicted_count, 1)
         
         for j in range(predicted_count):
-            recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]
-    
-    for i in range(predicted_count):
-        recursive_output_values[i] /= Decimal(model_count)
+            recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
     
     compounded_moving_change = []
     compounded_multiplier = Decimal(1)
@@ -103,7 +100,7 @@ while True:
     compounded_actual_change = []
 
     for change in compounded_moving_change:
-        compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
+        compounded_actual_change.append((moving_average_previous_rates[-1]*change)/C1C2_rate)
 
     moving_index = 0
     
@@ -145,7 +142,7 @@ while True:
                 all_negative = False
                 break
         
-    proportion = (abs(compounded_actual_change[actual_index])-proportionality_constant)/proportionality_constant
+    proportion = abs(compounded_actual_change[actual_index]-proportionality_constant)/proportionality_constant
     
     if proportion > 1:
         proportion = Decimal(1)
@@ -177,6 +174,6 @@ while True:
     plt.clf()
     plt.plot(x_values, y_values)
     plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
-    plt.pause(0.01)
+    plt.pause(0.001)
     
 plt.show()
