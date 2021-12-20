@@ -88,7 +88,7 @@ while True:
     for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
         target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
     
-    Trade_Data.load([], [], [], [], input_values, [])
+    Trade_Data.load([], [], [], [], input_values, target_values)
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -118,42 +118,39 @@ while True:
 
 
 
-    input_values_confidence = input_values[:-predicted_count*Trade_Models[0].input_count]
-    target_values_confidence = target_values[:-predicted_count*Trade_Models[0].output_count]
-    
-    Trade_Data_confidence.load([], [], [], [], input_values_confidence, [])
-    
-    recursive_output_values_confidence = [Decimal(0) for i in range(predicted_count)]
-    
-    for i in range(model_count):
-        Trade_Models[i].recursive_test(Trade_Data_confidence, predicted_count, 1)
-        
-        for j in range(predicted_count):
-            recursive_output_values_confidence[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
-    
-    
-    
-    compounded_multiplier_real = Decimal(1)
-    compounded_multiplier_confidence = Decimal(1)
-    
-    confidence_values = []
-    
-    y_values_confidence = moving_average_previous_rates[-Trade_Models[0].input_count:-predicted_count]
-    
-    for i in range(predicted_count):
-        compounded_multiplier_real *= moving_average_change_rates[-predicted_count+i]
-        compounded_multiplier_confidence *= recursive_output_values_confidence[i]
-        
-        y_values_confidence.append(y_values_confidence[-1]*recursive_output_values_confidence[i])
-        
-        confidence_level = abs(((compounded_multiplier_real-Decimal(1))-(compounded_multiplier_confidence-Decimal(1)))/(compounded_multiplier_real-Decimal(1)))
-        
-        if confidence_level > 1:
-            confidence_level = Decimal(1)
-            
-        confidence_values.append(Decimal(1)-confidence_level)
-    
+    confidence_values = [Decimal(0) for i in range(predicted_count)]
 
+    for h in range(0, Trade_Models[0].input_count-predicted_count, 30):
+        input_values_confidence = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
+        target_values_confidence = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+        
+        Trade_Data_confidence.load([], [], [], [], input_values_confidence, target_values_confidence)
+        
+        recursive_output_values_confidence = [Decimal(0) for i in range(predicted_count)]
+        
+        for i in range(model_count):
+            Trade_Models[i].recursive_test(Trade_Data_confidence, predicted_count, 1)
+            
+            for j in range(predicted_count):
+                recursive_output_values_confidence[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+        
+        
+        
+        compounded_multiplier_real = Decimal(1)
+        compounded_multiplier_confidence = Decimal(1)
+        
+        for i in range(predicted_count):
+            compounded_multiplier_real *= moving_average_change_rates[-predicted_count+i]
+            compounded_multiplier_confidence *= recursive_output_values_confidence[i]
+            
+            confidence_level = abs(((compounded_multiplier_real-Decimal(1))-(compounded_multiplier_confidence-Decimal(1)))/(compounded_multiplier_real-Decimal(1)))
+            
+            if confidence_level > 1:
+                confidence_level = Decimal(1)
+                
+            confidence_values[i] += (Decimal(1)-confidence_level)/Decimal(Trade_Models[0].input_count-predicted_count)
+        
+            
 
     moving_index = 0
     
@@ -232,7 +229,6 @@ while True:
     
     plt.clf()
     plt.plot(x_values, y_values)
-    plt.plot(x_values[:-predicted_count], y_values_confidence)
     plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
     plt.pause(0.001)
     
