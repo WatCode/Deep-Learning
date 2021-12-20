@@ -17,16 +17,24 @@ for i in range(model_count):
 
 Trade_Data = Data(Trade_Models[0].input_count)
 
+Trade_Data_confidence = Data(Trade_Models[0].input_count)
+
+
+
 api_key = "xtJNJ5ye25ze6DbFrX9zlMrcl16IyDeSUdAKVBOTou5vEb7RDWlFRTzK2EvurcJD"
 secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
+
+
 ticker = "ETHBTC"
 
 trade_fees = Decimal(0.00075)
 
-proportionality_constant = Decimal(0.001)
+proportionality_constant = Decimal(0.0005)
+
+confidence_threshold = Decimal(0.5)
 
 USDT_principal = Decimal(100)
 
@@ -41,6 +49,8 @@ average_size = 10
 
 start_flag = True
 
+
+
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
 while True:
@@ -53,17 +63,6 @@ while True:
 
     moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(previous_rates)-average_size+1)]
     moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
-    
-    input_values = []
-    target_values = []
-    
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
-        input_values += moving_average_change_rates[i:i+Trade_Models[0].input_count]
-    
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-        target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
-
-    y_values = moving_average_previous_rates[-Trade_Models[0].input_count:]
     
     C1C2_rate = previous_rates[-1]
 
@@ -78,7 +77,18 @@ while True:
         
         start_flag = False
     
-    Trade_Data.load([], [], [], [], input_values, target_values)
+    
+    
+    input_values = []
+    target_values = []
+    
+    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
+        input_values += moving_average_change_rates[i:i+Trade_Models[0].input_count]
+    
+    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
+        target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
+    
+    Trade_Data.load([], [], [], [], input_values, [])
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -87,9 +97,13 @@ while True:
         
         for j in range(predicted_count):
             recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
-    
+
+
+
     compounded_moving_change = []
     compounded_multiplier = Decimal(1)
+    
+    y_values = moving_average_previous_rates[-Trade_Models[0].input_count:]
     
     for multiplier in recursive_output_values:
         compounded_multiplier *= multiplier
@@ -101,6 +115,45 @@ while True:
 
     for change in compounded_moving_change:
         compounded_actual_change.append((moving_average_previous_rates[-1]*change)/C1C2_rate)
+
+
+
+    input_values_confidence = input_values[:-predicted_count*Trade_Models[0].input_count]
+    target_values_confidence = target_values[:-predicted_count*Trade_Models[0].output_count]
+    
+    Trade_Data_confidence.load([], [], [], [], input_values_confidence, [])
+    
+    recursive_output_values_confidence = [Decimal(0) for i in range(predicted_count)]
+    
+    for i in range(model_count):
+        Trade_Models[i].recursive_test(Trade_Data_confidence, predicted_count, 1)
+        
+        for j in range(predicted_count):
+            recursive_output_values_confidence[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+    
+    
+    
+    compounded_multiplier_real = Decimal(1)
+    compounded_multiplier_confidence = Decimal(1)
+    
+    confidence_values = []
+    
+    y_values_confidence = moving_average_previous_rates[-Trade_Models[0].input_count:-predicted_count]
+    
+    for i in range(predicted_count):
+        compounded_multiplier_real *= moving_average_change_rates[-predicted_count+i]
+        compounded_multiplier_confidence *= recursive_output_values_confidence[i]
+        
+        y_values_confidence.append(y_values_confidence[-1]*recursive_output_values_confidence[i])
+        
+        confidence_level = abs(((compounded_multiplier_real-Decimal(1))-(compounded_multiplier_confidence-Decimal(1)))/(compounded_multiplier_real-Decimal(1)))
+        
+        if confidence_level > 1:
+            confidence_level = Decimal(1)
+            
+        confidence_values.append(Decimal(1)-confidence_level)
+    
+
 
     moving_index = 0
     
@@ -147,23 +200,27 @@ while True:
     if proportion > 1:
         proportion = Decimal(1)
     
-    if all_positive:
-        fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
-        
-        C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
-        C2_balance *= (Decimal(1)-proportion)
-    if all_negative:
-        fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
-        
-        C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
-        C1_balance *= (Decimal(1)-proportion)
+    if confidence_values[actual_index] >= confidence_threshold:
+        if all_positive:
+            fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
+            
+            C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
+            C2_balance *= (Decimal(1)-proportion)
+        if all_negative:
+            fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
+            
+            C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
+            C1_balance *= (Decimal(1)-proportion)
         
     USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
+    
+    print(confidence_values)
     print("Moving minutes: " + str(moving_index))
     print("Moving price change: " + str(float(compounded_moving_change[moving_index])))
     print("Actual minutes: " + str(actual_index))
     print("Actual price change: " + str(float(compounded_actual_change[actual_index])))
+    print("Confidence level: " + str(float(confidence_values[actual_index])))
     print(ticker[:3] + " value in USDT: " + str(float(C1_balance*C1USDT_rate)))
     print(ticker[-3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
     print("Total value in USDT: " + str(float(USDT_value)))
@@ -171,8 +228,11 @@ while True:
     print("Total value generated in USDT: " + str(float(USDT_value+fees_paid)))
     print("\n")
     
+    
+    
     plt.clf()
     plt.plot(x_values, y_values)
+    plt.plot(x_values[:-predicted_count], y_values_confidence)
     plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
     plt.pause(0.001)
     
