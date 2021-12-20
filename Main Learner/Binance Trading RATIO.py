@@ -88,7 +88,7 @@ while True:
     for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
         target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
     
-    Trade_Data.load([], [], [], [], input_values, target_values)
+    Trade_Data.load([], [], [], [], input_values, [])
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -119,12 +119,14 @@ while True:
 
 
     confidence_values = [Decimal(0) for i in range(predicted_count)]
+    
+    step = 5
 
-    for h in range(0, Trade_Models[0].input_count-predicted_count, 30):
+    for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_confidence = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
         target_values_confidence = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
         
-        Trade_Data_confidence.load([], [], [], [], input_values_confidence, target_values_confidence)
+        Trade_Data_confidence.load([], [], [], [], input_values_confidence, [])
         
         recursive_output_values_confidence = [Decimal(0) for i in range(predicted_count)]
         
@@ -140,15 +142,12 @@ while True:
         compounded_multiplier_confidence = Decimal(1)
         
         for i in range(predicted_count):
-            compounded_multiplier_real *= moving_average_change_rates[-predicted_count+i]
+            compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
             compounded_multiplier_confidence *= recursive_output_values_confidence[i]
             
-            confidence_level = abs(((compounded_multiplier_real-Decimal(1))-(compounded_multiplier_confidence-Decimal(1)))/(compounded_multiplier_real-Decimal(1)))
+            confidence_level = abs((compounded_multiplier_real-compounded_multiplier_confidence)/(compounded_multiplier_real-Decimal(1)))
             
-            if confidence_level > 1:
-                confidence_level = Decimal(1)
-                
-            confidence_values[i] += (Decimal(1)-confidence_level)/Decimal(Trade_Models[0].input_count-predicted_count)
+            confidence_values[i] += confidence_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
         
             
 
@@ -197,7 +196,7 @@ while True:
     if proportion > 1:
         proportion = Decimal(1)
     
-    if confidence_values[actual_index] >= confidence_threshold:
+    if confidence_values[actual_index] < confidence_threshold:
         if all_positive:
             fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
             
