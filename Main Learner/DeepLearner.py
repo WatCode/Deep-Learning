@@ -117,7 +117,7 @@ class Model:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]
+                self.activation_values = [4 for i in range(9)]
 
                 if softmax:
                     self.activation_values += [100]
@@ -365,18 +365,16 @@ class Model:
 
             self.output_values = self.NModel.output_values
 
-    def recursive_test(self, Data, loop_count, feedback_count):
+    def recursive_test(self, Data, loop_count, feedback_count, auto_adjust=False):
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
-        if len(Data.target_values_test) > 0:
+        if auto_adjust:
             self.test(Data)
             
             coefficient_values = [Decimal(0) for i in range(self.output_count)]
             
             for i in range(len(Data.target_values_test)):
-                coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])
-                
-            coefficient_values = [value/Decimal(len(Data.target_values_test)/self.output_count) for value in coefficient_values]
+                coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])/Decimal(len(Data.target_values_test)/self.output_count)
         
         self.recursive_output_values = Data.input_values_test[:self.input_count]
         
@@ -385,17 +383,19 @@ class Model:
 
         self.recursive_output_values += Data.target_values_test[len(Data.target_values_test)-self.output_count+feedback_count:]
         
+        recursive_Data = Data(self.input_count)
+        
         for i in range(loop_count):
-            Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
-            self.test(Data, test_mode=True)
+            recursive_Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
+            
+            self.test(recursive_Data, test_mode=True)
             
             self.output_values = [self.output_values[j]*coefficient_values[j] for j in range(self.output_count)]
 
             if i == 0:
                 pooled_output_values = self.output_values.copy()
             else:
-                pooled_output_values = pooled_output_values[feedback_count:]
-                pooled_output_values += self.output_values[-feedback_count:]
+                pooled_output_values = pooled_output_values[feedback_count:]+self.output_values[-feedback_count:]
                 pooled_output_values = [(pooled_output_values[i]+self.output_values[i])/Decimal(2) for i in range(self.output_count)]
                 
             self.recursive_output_values += pooled_output_values[:feedback_count]

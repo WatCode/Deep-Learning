@@ -359,7 +359,7 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
     if(cycle > average_size1){
       cycles_remaining_average1 = cycles_remaining_sum1/average_size1;
 
-      if(cycles_remaining_average2 < 0.999*cycles_remaining_average1 && cycles_remaining_average2 < one){
+      if(cycles_remaining_average2 < cycles_remaining_average1 && cycles_remaining_average2 < one){
         minimum_reached = one;
       }
 
