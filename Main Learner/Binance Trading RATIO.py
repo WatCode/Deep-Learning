@@ -42,7 +42,7 @@ C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
 
-predicted_count = 90
+predicted_count = 60
 
 average_size = 10
 
@@ -126,7 +126,7 @@ while True:
         
         step = 1
 
-        for h in range(150, Trade_Models[0].input_count-predicted_count, step):
+        for h in range(0, Trade_Models[0].input_count-predicted_count, step):
             input_values_uncertainty = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
             target_values_uncertainty = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
             
