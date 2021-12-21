@@ -96,7 +96,7 @@ while True:
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
     for i in range(model_count):
-        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=True)
         
         for j in range(predicted_count):
             recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
@@ -117,41 +117,40 @@ while True:
     compounded_actual_change = []
 
     for change in compounded_moving_change:
-        compounded_actual_change.append((moving_average_previous_rates[-1]*(Decimal(1)+change))/C1C2_rate-Decimal(1))
+        compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
 
 
 
-    if True:
-        uncertainty_values = [Decimal(0) for i in range(predicted_count)]
+    uncertainty_values = [Decimal(0) for i in range(predicted_count)]
+    
+    step = 1
+
+    for h in range(0, Trade_Models[0].input_count-predicted_count, step):
+        input_values_uncertainty = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
+        target_values_uncertainty = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
         
-        step = 1
-
-        for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-            input_values_uncertainty = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-            target_values_uncertainty = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+        Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
+        
+        recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
+        
+        for i in range(model_count):
+            Trade_Models[i].recursive_test(Trade_Data_uncertainty, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=True)
             
-            Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
+            for j in range(predicted_count):
+                recursive_output_values_uncertainty[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+        
+        
+        
+        compounded_multiplier_real = Decimal(1)
+        compounded_multiplier_uncertainty = Decimal(1)
+        
+        for i in range(predicted_count):
+            compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
+            compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
             
-            recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
+            uncertainty_level = compounded_multiplier_uncertainty/compounded_multiplier_real
             
-            for i in range(model_count):
-                Trade_Models[i].recursive_test(Trade_Data_uncertainty, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
-                
-                for j in range(predicted_count):
-                    recursive_output_values_uncertainty[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
-            
-            
-            
-            compounded_multiplier_real = Decimal(1)
-            compounded_multiplier_uncertainty = Decimal(1)
-            
-            for i in range(predicted_count):
-                compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
-                compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
-                
-                uncertainty_level = compounded_multiplier_uncertainty/compounded_multiplier_real
-                
-                uncertainty_values[i] += abs(Decimal(1)-uncertainty_level)/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+            uncertainty_values[i] += abs(Decimal(1)-uncertainty_level)/Decimal((Trade_Models[0].input_count-predicted_count)/step)
             
             
 
