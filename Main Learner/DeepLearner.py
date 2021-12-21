@@ -72,7 +72,7 @@ def varyfind(output_values, target_values):
 
     return diff/Decimal(len(output_values))
 
-class Model:
+class Model_Class:
     def __init__(self):
         self.model_name = ""
         self.hidden_shaped = False
@@ -170,10 +170,10 @@ class Model:
         self.c_weights_values = weights_values_seq(*self.weights_values)
 
         if self.normaliser_depth > 0:
-            self.NModel = Model()
+            self.NModel = Model_Class()
             self.NModel.load(model_name=(self.model_name + "/NORMALISER"), bias_count=1, input_count=self.output_count, hidden_count=6, output_count=self.output_count, layer_count=4, activation_values=[4,4,4,4], min_diff=-1, learning_rate=0.00001, cycles=100, hidden_shaped=False, normaliser_depth=self.normaliser_depth-1, softmax=False)
 
-            self.NData = Data(self.NModel.input_count)
+            self.NData = Data_Class(self.NModel.input_count)
         
         if new_model:
             self.save()
@@ -365,16 +365,23 @@ class Model:
 
             self.output_values = self.NModel.output_values
 
-    def recursive_test(self, Data, loop_count, feedback_count, auto_adjust=False):
+    def recursive_test(self, Data, loop_count, feedback_count, pivot_value, auto_adjust=False):
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
         if auto_adjust:
             self.test(Data)
             
-            coefficient_values = [Decimal(0) for i in range(self.output_count)]
+            temp_coefficient_values = [Decimal(0) for i in range(self.output_count)]
             
             for i in range(len(Data.target_values_test)):
-                coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])/Decimal(len(Data.target_values_test)/self.output_count)
+                if (Data.target_values_test[i] < pivot_value and self.output_values[i] < pivot_value) or (Data.target_values_test[i] > pivot_value and self.output_values[i] > pivot_value):
+                    temp_coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])/Decimal(len(Data.target_values_test)/self.output_count)
+                else:
+                    temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values_test)/self.output_count)
+        
+            for i in range(self.output_count):
+                if temp_coefficient_values[i] > 0:
+                    coefficient_values[i] = (coefficient_values[i]+temp_coefficient_values[i])/Decimal(2)
         
         self.recursive_output_values = Data.input_values_test[:self.input_count]
         
@@ -383,7 +390,7 @@ class Model:
 
         self.recursive_output_values += Data.target_values_test[len(Data.target_values_test)-self.output_count+feedback_count:]
         
-        recursive_Data = Data(self.input_count)
+        recursive_Data = Data_Class(self.input_count)
         
         for i in range(loop_count):
             recursive_Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
@@ -402,7 +409,7 @@ class Model:
 
 
 
-class Data:
+class Data_Class:
     def __init__(self, input_count):
         self.input_count = input_count
 

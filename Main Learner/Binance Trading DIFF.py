@@ -12,10 +12,10 @@ model_count = int(input("Model count: "))
 Trade_Models = []
 
 for i in range(model_count):
-    Trade_Models.append(Model())
+    Trade_Models.append(Model_Class())
     Trade_Models[i].load(model_name+str(i))
 
-Trade_Data = Data(Trade_Models[0].input_count)
+Trade_Data = Data_Class(Trade_Models[0].input_count)
 
 api_key = "xtJNJ5ye25ze6DbFrX9zlMrcl16IyDeSUdAKVBOTou5vEb7RDWlFRTzK2EvurcJD"
 secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"

@@ -1,5 +1,6 @@
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 import matplotlib.pyplot as plt
+from numpy import complex128
 from DeepLearner import *
 from decimal import *
 from time import *
@@ -12,12 +13,12 @@ model_count = int(input("Model count: "))
 Trade_Models = []
 
 for i in range(model_count):
-    Trade_Models.append(Model())
+    Trade_Models.append(Model_Class())
     Trade_Models[i].load(model_name+str(i))
 
-Trade_Data = Data(Trade_Models[0].input_count)
+Trade_Data = Data_Class(Trade_Models[0].input_count)
 
-Trade_Data_confidence = Data(Trade_Models[0].input_count)
+Trade_Data_uncertainty = Data_Class(Trade_Models[0].input_count)
 
 
 
@@ -32,9 +33,7 @@ ticker = "ETHBTC"
 
 trade_fees = Decimal(0.00075)
 
-proportionality_constant = Decimal(0.0005)
-
-confidence_threshold = Decimal(0.5)
+proportionality_constant = Decimal(0.2)
 
 USDT_principal = Decimal(100)
 
@@ -53,8 +52,14 @@ start_flag = True
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
+C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "11 hours ago UTC")
+
 while True:
-    C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "12 hours ago UTC")
+    temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
+
+    if temp_C1C2_klines[-1][0] != C1C2_klines[-1][0]:
+        C1C2_klines = C1C2_klines[1:]+temp_C1C2_klines
+    
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
@@ -74,8 +79,6 @@ while True:
     
     if start_flag:
         C1_balance += USDT_principal/C1USDT_rate
-        
-        start_flag = False
     
     
     
@@ -93,7 +96,7 @@ while True:
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
     for i in range(model_count):
-        Trade_Models[i].recursive_test(Trade_Data, predicted_count, 1)
+        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
         
         for j in range(predicted_count):
             recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
@@ -114,41 +117,42 @@ while True:
     compounded_actual_change = []
 
     for change in compounded_moving_change:
-        compounded_actual_change.append((moving_average_previous_rates[-1]*change)/C1C2_rate)
+        compounded_actual_change.append((moving_average_previous_rates[-1]*(Decimal(1)+change))/C1C2_rate-Decimal(1))
 
 
 
-    confidence_values = [Decimal(0) for i in range(predicted_count)]
-    
-    step = 30
-
-    for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-        input_values_confidence = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-        target_values_confidence = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+    if True:
+        uncertainty_values = [Decimal(0) for i in range(predicted_count)]
         
-        Trade_Data_confidence.load([], [], [], [], input_values_confidence, target_values_confidence)
-        
-        recursive_output_values_confidence = [Decimal(0) for i in range(predicted_count)]
-        
-        for i in range(model_count):
-            Trade_Models[i].recursive_test(Trade_Data_confidence, predicted_count, 1)
+        step = 1
+
+        for h in range(150, Trade_Models[0].input_count-predicted_count, step):
+            input_values_uncertainty = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
+            target_values_uncertainty = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
             
-            for j in range(predicted_count):
-                recursive_output_values_confidence[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
-        
-        
-        
-        compounded_multiplier_real = Decimal(1)
-        compounded_multiplier_confidence = Decimal(1)
-        
-        for i in range(predicted_count):
-            compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
-            compounded_multiplier_confidence *= recursive_output_values_confidence[i]
+            Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
             
-            confidence_level = (compounded_multiplier_confidence-Decimal(1))/(compounded_multiplier_real-Decimal(1))
+            recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
             
-            confidence_values[i] += (Decimal(1)-confidence_level)/Decimal((Trade_Models[0].input_count-predicted_count)/step)
-        
+            for i in range(model_count):
+                Trade_Models[i].recursive_test(Trade_Data_uncertainty, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+                
+                for j in range(predicted_count):
+                    recursive_output_values_uncertainty[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+            
+            
+            
+            compounded_multiplier_real = Decimal(1)
+            compounded_multiplier_uncertainty = Decimal(1)
+            
+            for i in range(predicted_count):
+                compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
+                compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
+                
+                uncertainty_level = compounded_multiplier_uncertainty/compounded_multiplier_real
+                
+                uncertainty_values[i] += abs(Decimal(1)-uncertainty_level)/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+            
             
 
     moving_index = 0
@@ -191,32 +195,31 @@ while True:
                 all_negative = False
                 break
         
-    proportion = abs(compounded_actual_change[actual_index]-proportionality_constant)/proportionality_constant
+    proportion = abs(compounded_actual_change[actual_index]/uncertainty_values[actual_index])*proportionality_constant
     
     if proportion > 1:
         proportion = Decimal(1)
     
-    if confidence_values[actual_index] < confidence_threshold:
-        if all_positive:
-            fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
-            
-            C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
-            C2_balance *= (Decimal(1)-proportion)
-        if all_negative:
-            fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
-            
-            C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
-            C1_balance *= (Decimal(1)-proportion)
+    if all_positive:
+        fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
+        
+        C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
+        C2_balance *= (Decimal(1)-proportion)
+    if all_negative:
+        fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
+        
+        C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
+        C1_balance *= (Decimal(1)-proportion)
         
     USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
     
     
-    print(confidence_values)
+    print(uncertainty_values)
     print("Moving minutes: " + str(moving_index))
     print("Moving price change: " + str(float(compounded_moving_change[moving_index])))
     print("Actual minutes: " + str(actual_index))
     print("Actual price change: " + str(float(compounded_actual_change[actual_index])))
-    print("Confidence level: " + str(float(confidence_values[actual_index])))
+    print("Uncertainty level: " + str(float(uncertainty_values[actual_index])))
     print(ticker[:3] + " value in USDT: " + str(float(C1_balance*C1USDT_rate)))
     print(ticker[-3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
     print("Total value in USDT: " + str(float(USDT_value)))
@@ -230,5 +233,9 @@ while True:
     plt.plot(x_values, y_values)
     plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
     plt.pause(0.001)
+    
+    
+    
+    start_flag = False
     
 plt.show()

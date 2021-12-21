@@ -4,13 +4,13 @@ import chess.pgn
 model_name0 = input("Model name 0: ")
 model_name1 = input("Model name 1: ")
 
-Model0 = Model()
+Model0 = Model_Class()
 Model0.load(model_name0)
 
-Model1 = Model()
+Model1 = Model_Class()
 Model1.load(model_name1)
 
-Data0 = Data(Model0.input_count)
+Data0 = Data_Class(Model0.input_count)
 
 game = chess.pgn.Game()
 
