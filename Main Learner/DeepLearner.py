@@ -374,14 +374,13 @@ class Model_Class:
             temp_coefficient_values = [Decimal(0) for i in range(self.output_count)]
             
             for i in range(len(Data.target_values_test)):
-                if (Data.target_values_test[i] < pivot_value and self.output_values[i] < pivot_value) or (Data.target_values_test[i] > pivot_value and self.output_values[i] > pivot_value):
+                if (Data.target_values_test[i]-pivot_value)*(self.output_values[i]-pivot_value) > 0:
                     temp_coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])/Decimal(len(Data.target_values_test)/self.output_count)
                 else:
                     temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values_test)/self.output_count)
         
-            for i in range(self.output_count):
-                if temp_coefficient_values[i] > 0:
-                    coefficient_values[i] = (coefficient_values[i]+temp_coefficient_values[i])/Decimal(2)
+            if len(Data.target_values_test) > 0:
+                coefficient_values = temp_coefficient_values.copy()
         
         self.recursive_output_values = Data.input_values_test[:self.input_count]
         
