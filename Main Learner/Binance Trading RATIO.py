@@ -33,8 +33,6 @@ ticker = "ETHBTC"
 
 trade_fees = Decimal(0.00075)
 
-proportionality_constant = Decimal(0.2)
-
 USDT_principal = Decimal(100)
 
 C1_balance = Decimal(0)
@@ -56,12 +54,18 @@ C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE
 
 while True:
     temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
-
-    if temp_C1C2_klines[-1][0] != C1C2_klines[-1][0]:
-        C1C2_klines = C1C2_klines[1:]+temp_C1C2_klines
     
     C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
+
+    try:
+        if temp_C1C2_klines[-1][0] != C1C2_klines[-1][0]:
+            C1C2_klines = C1C2_klines[1:]+temp_C1C2_klines
+            
+        C1USDT_rate = Decimal(C1USDT_klines[0][4])
+        C2USDT_rate = Decimal(C2USDT_klines[0][4])
+    except:
+        continue
     
     previous_rates = [Decimal(element[4]) for element in C1C2_klines]
     change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
@@ -70,12 +74,6 @@ while True:
     moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
     
     C1C2_rate = previous_rates[-1]
-
-    try:
-        C1USDT_rate = Decimal(C1USDT_klines[0][4])
-        C2USDT_rate = Decimal(C2USDT_klines[0][4])
-    except:
-        continue
     
     if start_flag:
         C1_balance += USDT_principal/C1USDT_rate
@@ -210,7 +208,7 @@ while True:
                 all_negative = False
                 break
         
-    proportion = abs(compounded_actual_change[actual_index]/uncertainty_values[actual_index])*proportionality_constant
+    C1C2_balance_proportion = compounded_actual_change[actual_index]/(uncertainty_values[actual_index])
     
     if proportion > 1:
         proportion = Decimal(1)
