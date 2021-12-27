@@ -14,11 +14,13 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model_Class())
-    Trade_Models[i].load(model_name+str(i))
+    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.000001, cycles=5)
 
 Trade_Data = Data_Class(Trade_Models[0].input_count)
 
 Trade_Data_uncertainty = Data_Class(Trade_Models[0].input_count)
+
+Trade_Data_train = Data_Class(Trade_Models[0].input_count)
 
 
 
@@ -80,16 +82,16 @@ while True:
     
     
     
-    input_values = []
-    target_values = []
+    input_values_test = []
+    target_values_test = []
     
     for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
-        input_values += moving_average_change_rates[i:i+Trade_Models[0].input_count]
+        input_values_test += moving_average_change_rates[i:i+Trade_Models[0].input_count]
     
     for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-        target_values += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
+        target_values_test += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
     
-    Trade_Data.load([], [], [], [], input_values, target_values)
+    Trade_Data.load([], [], [], [], input_values_test, target_values_test)
     
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
@@ -121,8 +123,8 @@ while True:
     step = 1
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-        input_values_uncertainty = input_values[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-        target_values_uncertainty = target_values[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+        input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
+        target_values_uncertainty = target_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
         
         Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
         
@@ -192,21 +194,27 @@ while True:
     C1_actual_proportion = C1USDT_value/USDT_value
     C2_actual_proportion = C2USDT_value/USDT_value
     
-
-
-    if proportion > 1:
-        proportion = Decimal(1)
+    if C1_actual_proportion == 0:
+        C1_proportion_change = Decimal(0)
+    else:
+        C1_proportion_change = Decimal(1)-C1_target_proportion/C1_actual_proportion
+    if C2_actual_proportion == 0:
+        C2_proportion_change = Decimal(0)
+    else:
+        C2_proportion_change = Decimal(1)-C2_target_proportion/C2_actual_proportion
     
-    if all_positive:
-        fees_paid += trade_fees*((proportion*C2_balance)*C2USDT_rate)
+
+    
+    if C1_proportion_change <= 0:
+        fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
         
-        C1_balance += (Decimal(1)-trade_fees)*((proportion*C2_balance)/C1C2_rate)
-        C2_balance *= (Decimal(1)-proportion)
-    if all_negative:
-        fees_paid += trade_fees*((proportion*C1_balance)*C1USDT_rate)
+        C1_balance += (Decimal(1)-trade_fees)*((C2_proportion_change*C2_balance)/C1C2_rate)
+        C2_balance *= (Decimal(1)-C2_proportion_change)
+    if C2_proportion_change <= 0:
+        fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
         
-        C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
-        C1_balance *= (Decimal(1)-proportion)
+        C2_balance += (Decimal(1)-trade_fees)*((C1_proportion_change*C1_balance)*C1C2_rate)
+        C1_balance *= (Decimal(1)-C1_proportion_change)
     
     
 
@@ -230,6 +238,15 @@ while True:
     
     
     
-    start_flag = False
+    input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
+    target_values_train = target_values_test
     
-plt.show()
+    Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
+    
+    for i in range(model_count):
+        Trade_Models[i].train(Trade_Data_train)
+        Trade_Models[i].save()
+    
+    
+    
+    start_flag = False
