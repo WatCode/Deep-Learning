@@ -185,8 +185,15 @@ while True:
         C1_target_proportion += abs(temp_C1_proportion)/Decimal(predicted_count)
         C2_target_proportion += abs(temp_C2_proportion)/Decimal(predicted_count)
         
+    C1USDT_value = C1_balance*C1USDT_rate
+    C2USDT_value = C2_balance*C2USDT_rate
+    USDT_value = C1USDT_value+C2USDT_value
     
+    C1_actual_proportion = C1USDT_value/USDT_value
+    C2_actual_proportion = C2USDT_value/USDT_value
     
+
+
     if proportion > 1:
         proportion = Decimal(1)
     
@@ -200,15 +207,6 @@ while True:
         
         C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
         C1_balance *= (Decimal(1)-proportion)
-        
-    C1USDT_value = C1_balance*C1USDT_rate
-    C2USDT_value = C2_balance*C2USDT_rate
-    USDT_value = C1USDT_value+C2USDT_value
-    
-    C1_actual_proportion = C1USDT_value/USDT_value
-    C2_actual_proportion = C2USDT_value/USDT_value
-    
-    
     
     
 
