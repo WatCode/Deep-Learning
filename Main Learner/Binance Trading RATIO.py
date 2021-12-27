@@ -168,47 +168,24 @@ while True:
             
             
 
-    moving_index = 0
+    C1_target_proportion = Decimal(0)
+    C2_target_proportion = Decimal(0)
     
-    for change in compounded_moving_change:
-        if change > trade_fees:
-            break
-        if change < -trade_fees:
-            break
-            
-        moving_index += 1
-    
-    all_positive = False
-    all_negative = False
-    
-    actual_index = 0
-    
-    for change in compounded_actual_change:
-        if change > trade_fees:
-            all_positive = True
-            break
-        if change < -trade_fees:
-            all_negative = True
-            break
-            
-        actual_index += 1
+    for i in range(predicted_count):
+        temp_C1_proportion = compounded_actual_change_upper[i]/(uncertainty_values[i]*Decimal(2))
+        temp_C2_proportion = compounded_actual_change_lower[i]/(uncertainty_values[i]*Decimal(2))
         
-    if moving_index == len(compounded_moving_change):
-        moving_index -= 1
-    if actual_index == len(compounded_actual_change):
-        actual_index -= 1
-    
-    for change in compounded_moving_change[:actual_index]:
-        if all_positive:
-            if change < 0:
-                all_positive = False
-                break
-        if all_negative:
-            if change > 0:
-                all_negative = False
-                break
+        if temp_C1_proportion > 1 or temp_C2_proportion > 0:
+            temp_C1_proportion = Decimal(1)
+            temp_C2_proportion = Decimal(0)
+        if temp_C2_proportion < -1 or temp_C1_proportion < 0:
+            temp_C1_proportion = Decimal(0)
+            temp_C2_proportion = Decimal(1)
         
-    C1C2_balance_proportion = compounded_actual_change[actual_index]/(uncertainty_values[actual_index])
+        C1_target_proportion += abs(temp_C1_proportion)/Decimal(predicted_count)
+        C2_target_proportion += abs(temp_C2_proportion)/Decimal(predicted_count)
+        
+    
     
     if proportion > 1:
         proportion = Decimal(1)
@@ -224,15 +201,19 @@ while True:
         C2_balance += (Decimal(1)-trade_fees)*((proportion*C1_balance)*C1C2_rate)
         C1_balance *= (Decimal(1)-proportion)
         
-    USDT_value = C1_balance*C1USDT_rate+C2_balance*C2USDT_rate
+    C1USDT_value = C1_balance*C1USDT_rate
+    C2USDT_value = C2_balance*C2USDT_rate
+    USDT_value = C1USDT_value+C2USDT_value
+    
+    C1_actual_proportion = C1USDT_value/USDT_value
+    C2_actual_proportion = C2USDT_value/USDT_value
     
     
-    print(uncertainty_values)
-    print("Moving minutes: " + str(moving_index))
-    print("Moving price change: " + str(float(compounded_moving_change[moving_index])))
-    print("Actual minutes: " + str(actual_index))
-    print("Actual price change: " + str(float(compounded_actual_change[actual_index])))
-    print("Uncertainty level: " + str(float(uncertainty_values[actual_index])))
+    
+    
+
+    print(ticker[:3] + " target proportion in USDT: " + str(float(C1_target_proportion)))
+    print(ticker[-3:] + " target proportion in USDT: " + str(float(C2_target_proportion)))
     print(ticker[:3] + " value in USDT: " + str(float(C1_balance*C1USDT_rate)))
     print(ticker[-3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
     print("Total value in USDT: " + str(float(USDT_value)))
