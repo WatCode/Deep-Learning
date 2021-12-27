@@ -14,7 +14,7 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model_Class())
-    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.000001, cycles=5)
+    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.0000002, cycles=4)
 
 Trade_Data = Data_Class(Trade_Models[0].input_count)
 
@@ -42,7 +42,7 @@ C2_balance = Decimal(0)
 
 fees_paid = Decimal(0)
 
-predicted_count = 60
+predicted_count = 30
 
 average_size = 10
 
@@ -120,7 +120,7 @@ while True:
 
     uncertainty_values = [Decimal(0) for i in range(predicted_count)]
     
-    step = 1
+    step = 5
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
