@@ -14,7 +14,7 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model_Class())
-    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.00000004, cycles=4)
+    Trade_Models[i].load(model_name+str(i), min_diff=0.00000004, learning_rate=0.000000001, cycles=4)
 
 Trade_Data = Data_Class(Trade_Models[0].input_count)
 
@@ -33,7 +33,7 @@ client = Client(api_key, secret_key)
 
 ticker = "ETHBTC"
 
-trade_fees = Decimal(0.00075)
+trade_fees = Decimal(0.000)
 
 USDT_principal = Decimal(100)
 
@@ -121,7 +121,7 @@ while True:
     uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
     uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
     
-    step = 3
+    step = 1
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
@@ -219,6 +219,12 @@ while True:
         
         C2_balance += (Decimal(1)-trade_fees)*((C1_proportion_change*C1_balance)*C1C2_rate)
         C1_balance *= (Decimal(1)-C1_proportion_change)
+    
+    
+    
+    C1USDT_value = C1_balance*C1USDT_rate
+    C2USDT_value = C2_balance*C2USDT_rate
+    USDT_value = C1USDT_value+C2USDT_value
     
     
 
