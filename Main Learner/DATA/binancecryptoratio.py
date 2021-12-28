@@ -7,7 +7,7 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-ticker = "ETHBTC"
+ticker = "ETHUSDT"
 
 klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "2 days ago UTC")
 

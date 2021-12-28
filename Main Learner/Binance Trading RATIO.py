@@ -57,15 +57,16 @@ C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE
 while True:
     temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
     
-    C1USDT_klines = client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
-    C2USDT_klines = client.get_historical_klines(ticker[-3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
-
     try:
         if temp_C1C2_klines[-1][0] != C1C2_klines[-1][0]:
             C1C2_klines = C1C2_klines[1:]+temp_C1C2_klines
             
-        C1USDT_rate = Decimal(C1USDT_klines[0][4])
-        C2USDT_rate = Decimal(C2USDT_klines[0][4])
+        if len(ticker[3:]) == 3:
+            C1USDT_rate = Decimal(client.get_historical_klines(ticker[:3] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")[0][4])
+            C2USDT_rate = Decimal(client.get_historical_klines(ticker[3:] + "USDT", Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")[0][4])
+        else:
+            C1USDT_rate = Decimal(temp_C1C2_klines[-1][4])
+            C2USDT_rate = Decimal(1)
     except:
         continue
     
@@ -78,7 +79,7 @@ while True:
     C1C2_rate = previous_rates[-1]
     
     if start_flag:
-        C1_balance += USDT_principal/C1USDT_rate
+        C2_balance += USDT_principal/C2USDT_rate
     
     
     
@@ -229,9 +230,9 @@ while True:
     
 
     print(ticker[:3] + " target proportion in USDT: " + str(float(C1_target_proportion)))
-    print(ticker[-3:] + " target proportion in USDT: " + str(float(C2_target_proportion)))
+    print(ticker[3:] + " target proportion in USDT: " + str(float(C2_target_proportion)))
     print(ticker[:3] + " value in USDT: " + str(float(C1_balance*C1USDT_rate)))
-    print(ticker[-3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
+    print(ticker[3:] + " value in USDT: " + str(float(C2_balance*C2USDT_rate)))
     print("Total value in USDT: " + str(float(USDT_value)))
     print("Total fees paid in USDT: " + str(float(fees_paid)))
     print("Total value generated in USDT: " + str(float(USDT_value+fees_paid)))
