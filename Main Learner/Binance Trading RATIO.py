@@ -118,9 +118,10 @@ while True:
 
 
 
-    uncertainty_values = [Decimal(0) for i in range(predicted_count)]
+    uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
+    uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
     
-    step = 5
+    step = 3
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
@@ -145,17 +146,20 @@ while True:
             compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
             compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
             
-            uncertainty_level = abs(compounded_multiplier_uncertainty-compounded_multiplier_real)
+            uncertainty_level = compounded_multiplier_uncertainty-compounded_multiplier_real
             
-            uncertainty_values[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+            if uncertainty_level < 0:
+                uncertainty_values_lower[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+            if uncertainty_level > 0:
+                uncertainty_values_upper[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
     
     
     
-    compounded_moving_change_lower = [compounded_moving_change[i]-uncertainty_values[i] for i in range(predicted_count)]
-    compounded_moving_change_upper = [compounded_moving_change[i]+uncertainty_values[i] for i in range(predicted_count)]
+    compounded_moving_change_lower = [compounded_moving_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
+    compounded_moving_change_upper = [compounded_moving_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
     
-    compounded_actual_change_lower = [compounded_actual_change[i]-uncertainty_values[i] for i in range(predicted_count)]
-    compounded_actual_change_upper = [compounded_actual_change[i]+uncertainty_values[i] for i in range(predicted_count)]
+    compounded_actual_change_lower = [compounded_actual_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
+    compounded_actual_change_upper = [compounded_actual_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
     
     
     
@@ -174,8 +178,8 @@ while True:
     C2_target_proportion = Decimal(0)
     
     for i in range(predicted_count):
-        temp_C1_proportion = compounded_actual_change_upper[i]/(uncertainty_values[i]*Decimal(2))
-        temp_C2_proportion = compounded_actual_change_lower[i]/(uncertainty_values[i]*Decimal(2))
+        temp_C1_proportion = compounded_moving_change_upper[i]/(compounded_moving_change_upper[i]-compounded_moving_change_lower[i])
+        temp_C2_proportion = compounded_moving_change_lower[i]/(compounded_moving_change_upper[i]-compounded_moving_change_lower[i])
         
         if temp_C1_proportion > 1 or temp_C2_proportion > 0:
             temp_C1_proportion = Decimal(1)
