@@ -14,7 +14,7 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model_Class())
-    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.0000002, cycles=4)
+    Trade_Models[i].load(model_name+str(i), min_diff=0.0000001, learning_rate=0.00000004, cycles=4)
 
 Trade_Data = Data_Class(Trade_Models[0].input_count)
 
