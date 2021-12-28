@@ -121,7 +121,7 @@ while True:
     uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
     uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
     
-    step = 1
+    step = 2
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
