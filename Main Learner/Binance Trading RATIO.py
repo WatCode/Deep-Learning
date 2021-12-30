@@ -14,7 +14,7 @@ Trade_Models = []
 
 for i in range(model_count):
     Trade_Models.append(Model_Class())
-    Trade_Models[i].load(model_name+str(i), min_diff=0.00000004, learning_rate=0.000000001, cycles=4)
+    Trade_Models[i].load(model_name+str(i), min_diff=0.00000004, learning_rate=0.00000004, cycles=4)
 
 Trade_Data = Data_Class(Trade_Models[0].input_count)
 
@@ -31,7 +31,7 @@ client = Client(api_key, secret_key)
 
 
 
-ticker = "ETHBTC"
+ticker = "ETHUSDT"
 
 trade_fees = Decimal(0.00075)
 
