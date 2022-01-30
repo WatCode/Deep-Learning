@@ -365,7 +365,7 @@ class Model_Class:
 
             self.output_values = self.NModel.output_values
 
-    def recursive_test(self, Data, loop_count, feedback_count, pivot_value, auto_adjust=False):
+    def recursive_test(self, Data, loop_count, feedback_count, pivot_value=0, auto_adjust=False):
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
         if auto_adjust:
