@@ -6,7 +6,7 @@ filer = open("COVRAW.txt", "r").read().split("\n")
 
 heading_list = filer[0].split(",")
 
-iso_list = ["ZAF"]
+iso_list = ["OWID_WRL"]
 iso_data = {iso:{heading:[] for heading in heading_list} for iso in iso_list}
 
 iso_lengths = {iso:0 for iso in iso_list}
@@ -30,7 +30,7 @@ for line in filer[1:]:
             finally:
                 iso_data[line_split[0]][heading_list[i]].append(value)
 
-target_headings = ["new_cases_smoothed_per_million"]
+target_headings = ["new_cases_smoothed_per_million", "new_deaths_smoothed_per_million", "people_fully_vaccinated_per_hundred", "total_boosters_per_hundred"]
 
 normalised_iso_data = {iso:{heading:[] for heading in target_headings} for iso in iso_list}
 
