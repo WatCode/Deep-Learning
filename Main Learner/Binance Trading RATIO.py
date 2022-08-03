@@ -31,9 +31,9 @@ client = Client(api_key, secret_key)
 
 
 
-ticker = "ETHUSDT"
+ticker = "BTCUSDT"
 
-trade_fees = Decimal(0.00075)
+trade_fees = Decimal(0.0)
 
 USDT_principal = Decimal(100)
 
