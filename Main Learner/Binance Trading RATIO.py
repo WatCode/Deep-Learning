@@ -35,7 +35,7 @@ ticker = "BTCUSDT"
 
 trade_fees = Decimal(0.0)
 
-USDT_principal = Decimal(100)
+USDT_principal = Decimal(client.get_asset_balance(asset='USDT')["free"])
 
 C1_balance = Decimal(0)
 C2_balance = Decimal(0)
@@ -122,7 +122,7 @@ while True:
     uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
     uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
     
-    step = 2
+    step = 6
 
     for h in range(0, Trade_Models[0].input_count-predicted_count, step):
         input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
@@ -179,8 +179,8 @@ while True:
     C2_target_proportion = Decimal(0)
     
     for i in range(predicted_count):
-        temp_C1_proportion = compounded_moving_change_upper[i]/(compounded_moving_change_upper[i]-compounded_moving_change_lower[i])
-        temp_C2_proportion = compounded_moving_change_lower[i]/(compounded_moving_change_upper[i]-compounded_moving_change_lower[i])
+        temp_C1_proportion = compounded_actual_change_upper[i]/(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
+        temp_C2_proportion = compounded_actual_change_lower[i]/(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
         
         if temp_C1_proportion > 1 or temp_C2_proportion > 0:
             temp_C1_proportion = Decimal(1)
