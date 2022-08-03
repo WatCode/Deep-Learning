@@ -249,14 +249,14 @@ while True:
     
     
     
-    input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
-    target_values_train = target_values_test
+    #input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
+    #target_values_train = target_values_test
     
-    Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
+    #Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
     
-    for i in range(model_count):
-        Trade_Models[i].train(Trade_Data_train)
-        Trade_Models[i].save()
+    #for i in range(model_count):
+        #Trade_Models[i].train(Trade_Data_train)
+        #Trade_Models[i].save()
     
     
     
