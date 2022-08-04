@@ -221,7 +221,7 @@ while True:
     if C2_proportion_change > 0:
         fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
         
-        C2sell_quantity = round(float(abs(C1_proportion_change)*C1_balance), 8)
+        C2sell_quantity = round(float(C2_proportion_change*C2_balance/C1C2_rate), 8)
         print(C2sell_quantity)
         
         if C2sell_quantity > 0:
