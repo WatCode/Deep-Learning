@@ -33,6 +33,8 @@ client = Client(api_key, secret_key)
 
 ticker = "BTCUSDT"
 
+minimum_quantity = Decimal(10.0)
+
 trade_fees = Decimal(0.0)
 
 C1_balance = Decimal(0)
@@ -224,7 +226,7 @@ while True:
         C2sell_quantity = round(float(C2_proportion_change*C2_balance/C1C2_rate), 8)
         print(C2sell_quantity)
         
-        if C2sell_quantity > 0:
+        if C2sell_quantity > minimum_quantity/C1C2_rate:
             order_buy = client.order_market_buy(symbol='BTCUSDT', quantity=C2sell_quantity)
             print(order_buy)
     
