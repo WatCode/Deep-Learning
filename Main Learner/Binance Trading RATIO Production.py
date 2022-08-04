@@ -35,8 +35,6 @@ ticker = "BTCUSDT"
 
 trade_fees = Decimal(0.0)
 
-USDT_principal = Decimal(100)
-
 C1_balance = Decimal(0)
 C2_balance = Decimal(0)
 
@@ -78,8 +76,6 @@ while True:
     
     C1C2_rate = previous_rates[-1]
     
-    if start_flag:
-        C2_balance += USDT_principal/C2USDT_rate
     
     
     
@@ -191,7 +187,10 @@ while True:
         
         C1_target_proportion += abs(temp_C1_proportion)/Decimal(predicted_count)
         C2_target_proportion += abs(temp_C2_proportion)/Decimal(predicted_count)
-        
+    
+    C1_balance = Decimal(client.get_asset_balance(asset='BTC')["free"])
+    C2_balance = Decimal(client.get_asset_balance(asset='USDT')["free"])
+    
     C1USDT_value = C1_balance*C1USDT_rate
     C2USDT_value = C2_balance*C2USDT_rate
     USDT_value = C1USDT_value+C2USDT_value
@@ -210,16 +209,24 @@ while True:
     
 
     
-    if C1_proportion_change <= 0:
+    if C1_proportion_change > 0:
         fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
         
-        C1_balance += (Decimal(1)-trade_fees)*((C2_proportion_change*C2_balance)/C1C2_rate)
-        C2_balance *= (Decimal(1)-C2_proportion_change)
-    if C2_proportion_change <= 0:
+        C1sell_quantity = round(float(C1_proportion_change*C1_balance, 8))
+        print(C1sell_quantity)
+        
+        if C1sell_quantity > 0:
+            order_sell = client.order_market_sell(symbol='BTCUSDT', quantity=C1sell_quantity)
+            print(order_sell)
+    if C2_proportion_change > 0:
         fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
         
-        C2_balance += (Decimal(1)-trade_fees)*((C1_proportion_change*C1_balance)*C1C2_rate)
-        C1_balance *= (Decimal(1)-C1_proportion_change)
+        C2sell_quantity = round(float(abs(C1_proportion_change)*C1_balance), 8)
+        print(C2sell_quantity)
+        
+        if C2sell_quantity > 0:
+            order_buy = client.order_market_buy(symbol='BTCUSDT', quantity=C2sell_quantity)
+            print(order_buy)
     
     
     
