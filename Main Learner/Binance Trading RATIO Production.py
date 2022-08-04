@@ -48,6 +48,7 @@ average_size = 10
 
 start_flag = True
 
+counter = 0
 
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
@@ -80,96 +81,85 @@ while True:
     
     
     
-    
-    input_values_test = []
-    target_values_test = []
-    
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
-        input_values_test += moving_average_change_rates[i:i+Trade_Models[0].input_count]
-    
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-        target_values_test += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
-    
-    Trade_Data.load([], [], [], [], input_values_test, target_values_test)
-    
-    recursive_output_values = [Decimal(0) for i in range(predicted_count)]
-    
-    for i in range(model_count):
-        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+    if counter%5 == 0:
+        input_values_test = []
+        target_values_test = []
         
-        for j in range(predicted_count):
-            recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
-
-
-
-    compounded_multiplier = Decimal(1)
-    compounded_moving_change = []
-    
-    for multiplier in recursive_output_values:
-        compounded_multiplier *= multiplier
-
-        compounded_moving_change.append(compounded_multiplier-Decimal(1))
+        for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
+            input_values_test += moving_average_change_rates[i:i+Trade_Models[0].input_count]
         
-    compounded_actual_change = []
-
-    for change in compounded_moving_change:
-        compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
-
-
-
-    uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
-    uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
-    
-    step = 6
-
-    for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-        input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-        target_values_uncertainty = target_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+        for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
+            target_values_test += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
         
-        Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
+        Trade_Data.load([], [], [], [], input_values_test, target_values_test)
         
-        recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
+        recursive_output_values = [Decimal(0) for i in range(predicted_count)]
         
         for i in range(model_count):
-            Trade_Models[i].recursive_test(Trade_Data_uncertainty, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+            Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
             
             for j in range(predicted_count):
-                recursive_output_values_uncertainty[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+                recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+
+
+
+        compounded_multiplier = Decimal(1)
+        compounded_moving_change = []
         
-        
-        
-        compounded_multiplier_real = Decimal(1)
-        compounded_multiplier_uncertainty = Decimal(1)
-        
-        for i in range(predicted_count):
-            compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
-            compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
+        for multiplier in recursive_output_values:
+            compounded_multiplier *= multiplier
+
+            compounded_moving_change.append(compounded_multiplier-Decimal(1))
             
-            uncertainty_level = compounded_multiplier_uncertainty-compounded_multiplier_real
+        compounded_actual_change = []
+
+        for change in compounded_moving_change:
+            compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
+
+
+
+        uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
+        uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
+        
+        step = 6
+
+        for h in range(0, Trade_Models[0].input_count-predicted_count, step):
+            input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
+            target_values_uncertainty = target_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
             
-            if uncertainty_level < 0:
-                uncertainty_values_lower[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
-            if uncertainty_level > 0:
-                uncertainty_values_upper[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
-    
-    
-    
-    compounded_moving_change_lower = [compounded_moving_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
-    compounded_moving_change_upper = [compounded_moving_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
-    
-    compounded_actual_change_lower = [compounded_actual_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
-    compounded_actual_change_upper = [compounded_actual_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
-    
-    
-    
-    y_values_average = moving_average_previous_rates[-Trade_Models[0].input_count:]
-    y_values_lower = []
-    y_values_upper = []
-    
-    for i in range(predicted_count):
-        y_values_average.append(moving_average_previous_rates[-1]*(compounded_moving_change[i]+Decimal(1)))
-        y_values_lower.append(moving_average_previous_rates[-1]*(compounded_moving_change_lower[i]+Decimal(1)))
-        y_values_upper.append(moving_average_previous_rates[-1]*(compounded_moving_change_upper[i]+Decimal(1)))
+            Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
+            
+            recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
+            
+            for i in range(model_count):
+                Trade_Models[i].recursive_test(Trade_Data_uncertainty, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+                
+                for j in range(predicted_count):
+                    recursive_output_values_uncertainty[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
+            
+            
+            
+            compounded_multiplier_real = Decimal(1)
+            compounded_multiplier_uncertainty = Decimal(1)
+            
+            for i in range(predicted_count):
+                compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
+                compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
+                
+                uncertainty_level = compounded_multiplier_uncertainty-compounded_multiplier_real
+                
+                if uncertainty_level < 0:
+                    uncertainty_values_lower[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+                if uncertainty_level > 0:
+                    uncertainty_values_upper[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+        
+        
+        
+        compounded_moving_change_lower = [compounded_moving_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
+        compounded_moving_change_upper = [compounded_moving_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
+        
+        compounded_actual_change_lower = [compounded_actual_change[i]+uncertainty_values_lower[i] for i in range(predicted_count)]
+        compounded_actual_change_upper = [compounded_actual_change[i]+uncertainty_values_upper[i] for i in range(predicted_count)]
             
             
 
@@ -250,26 +240,34 @@ while True:
     print("Total value generated in USDT: " + str(float(USDT_value+fees_paid)))
     print("\n")
     
+    if counter%5 == 0:
+        y_values_average = moving_average_previous_rates[-Trade_Models[0].input_count:]
+        y_values_lower = []
+        y_values_upper = []
+        
+        for i in range(predicted_count):
+            y_values_average.append(moving_average_previous_rates[-1]*(compounded_moving_change[i]+Decimal(1)))
+            y_values_lower.append(moving_average_previous_rates[-1]*(compounded_moving_change_lower[i]+Decimal(1)))
+            y_values_upper.append(moving_average_previous_rates[-1]*(compounded_moving_change_upper[i]+Decimal(1)))
+        
+        plt.clf()
+        plt.plot(x_values, y_values_average)
+        plt.plot(x_values[-predicted_count:], y_values_lower)
+        plt.plot(x_values[-predicted_count:], y_values_upper)
+        plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
+        plt.pause(0.001)
     
     
-    plt.clf()
-    plt.plot(x_values, y_values_average)
-    plt.plot(x_values[-predicted_count:], y_values_lower)
-    plt.plot(x_values[-predicted_count:], y_values_upper)
-    plt.plot(x_values[:-predicted_count], previous_rates[-Trade_Models[0].input_count:])
-    plt.pause(0.001)
+    if counter%40 == 0:
+        input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
+        target_values_train = target_values_test
+        
+        Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
+        
+        for i in range(model_count):
+            Trade_Models[i].train(Trade_Data_train)
+            Trade_Models[i].save()
     
     
-    
-    #input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
-    #target_values_train = target_values_test
-    
-    #Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
-    
-    #for i in range(model_count):
-        #Trade_Models[i].train(Trade_Data_train)
-        #Trade_Models[i].save()
-    
-    
-    
+    counter += 1
     start_flag = False
