@@ -3,5 +3,6 @@
         "math.h": "c",
         "stdlib.h": "c",
         "interfacec.h": "c"
-    }
+    },
+    "python.pythonPath": "C:\\Python39\\python.exe"
 }
