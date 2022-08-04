@@ -214,21 +214,24 @@ while True:
     if C1_proportion_change > 0:
         fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
         
-        C1sell_quantity = round(float(C1_proportion_change*C1_balance, 8))
+        C1sell_quantity = round(float(C1_proportion_change*C1_balance), 5)
         print(C1sell_quantity)
         
-        if C1sell_quantity > 0:
+        if C1sell_quantity > minimum_quantity/C1C2_rate:
             order_sell = client.order_market_sell(symbol='BTCUSDT', quantity=C1sell_quantity)
             print(order_sell)
     if C2_proportion_change > 0:
         fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
         
-        C2sell_quantity = round(float(C2_proportion_change*C2_balance/C1C2_rate), 8)
+        C2sell_quantity = round(float(C2_proportion_change*C2_balance), 5)
         print(C2sell_quantity)
         
-        if C2sell_quantity > minimum_quantity/C1C2_rate:
-            order_buy = client.order_market_buy(symbol='BTCUSDT', quantity=C2sell_quantity)
-            print(order_buy)
+        if C2sell_quantity > minimum_quantity:
+            try:
+                order_buy = client.order_market_buy(symbol='BTCUSDT', quoteOrderQty=C2sell_quantity)
+                print(order_buy)
+            except:
+                continue
     
     
     
