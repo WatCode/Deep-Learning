@@ -31,11 +31,11 @@ client = Client(api_key, secret_key)
 
 
 
-ticker = "BTCUSDT"
+ticker = "ETHBTC"
 
 minimum_quantity = Decimal(10.0)
 
-trade_fees = Decimal(0.0)
+trade_fees = Decimal(0.001)
 
 C1_balance = Decimal(0)
 C2_balance = Decimal(0)
@@ -53,7 +53,7 @@ counter = 0
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
-C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "11 hours ago UTC")
+C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "16 hours ago UTC")
 
 while True:
     temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
@@ -72,24 +72,24 @@ while True:
         continue
     
     previous_rates = [Decimal(element[4]) for element in C1C2_klines]
-    change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
 
     moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(previous_rates)-average_size+1)]
-    moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    
+    change_moving_average_rates = [moving_average_previous_rates[i+1]/moving_average_previous_rates[i] for i in range(len(moving_average_previous_rates)-1)]
     
     C1C2_rate = previous_rates[-1]
     
     
     
-    if counter%5 == 0:
+    if counter%1 == 0:
         input_values_test = []
         target_values_test = []
         
-        for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
-            input_values_test += moving_average_change_rates[i:i+Trade_Models[0].input_count]
+        for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count+1):
+            input_values_test += change_moving_average_rates[i:i+Trade_Models[0].input_count]
         
-        for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-            target_values_test += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
+        for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
+            target_values_test += change_moving_average_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
         
         Trade_Data.load([], [], [], [], input_values_test, target_values_test)
         
@@ -112,20 +112,25 @@ while True:
             compounded_moving_change.append(compounded_multiplier-Decimal(1))
             
         compounded_actual_change = []
+        average_compounded_actual_change = Decimal(0)
 
         for change in compounded_moving_change:
             compounded_actual_change.append((moving_average_previous_rates[-1]*(change+Decimal(1)))/C1C2_rate-Decimal(1))
+            
+            average_compounded_actual_change += compounded_actual_change[-1]/predicted_count
+        
+        print(average_compounded_actual_change)
 
 
 
         uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
         uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
         
-        step = 6
+        step = 4
 
-        for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-            input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-            target_values_uncertainty = target_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+        for h in range(0, len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count, step):
+            input_values_uncertainty = input_values_test[h*Trade_Models[0].input_count:h*Trade_Models[0].input_count+Trade_Models[0].input_count]
+            target_values_uncertainty = target_values_test[h*Trade_Models[0].output_count:h*Trade_Models[0].output_count+Trade_Models[0].output_count]
             
             Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
             
@@ -143,15 +148,15 @@ while True:
             compounded_multiplier_uncertainty = Decimal(1)
             
             for i in range(predicted_count):
-                compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
+                compounded_multiplier_real *= change_moving_average_rates[Trade_Models[0].input_count+h+i]
                 compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
                 
-                uncertainty_level = compounded_multiplier_uncertainty-compounded_multiplier_real
+                uncertainty_level = compounded_multiplier_real-compounded_multiplier_uncertainty
                 
                 if uncertainty_level < 0:
-                    uncertainty_values_lower[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+                    uncertainty_values_lower[i] += uncertainty_level/Decimal((len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count)/step)
                 if uncertainty_level > 0:
-                    uncertainty_values_upper[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+                    uncertainty_values_upper[i] += uncertainty_level/Decimal((len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count)/step)
         
         
         
@@ -167,8 +172,8 @@ while True:
     C2_target_proportion = Decimal(0)
     
     for i in range(predicted_count):
-        temp_C1_proportion = compounded_actual_change_upper[i]/(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
-        temp_C2_proportion = compounded_actual_change_lower[i]/(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
+        temp_C1_proportion = compounded_actual_change_upper[i]/abs(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
+        temp_C2_proportion = compounded_actual_change_lower[i]/abs(compounded_actual_change_upper[i]-compounded_actual_change_lower[i])
         
         if temp_C1_proportion > 1 or temp_C2_proportion > 0:
             temp_C1_proportion = Decimal(1)
@@ -180,8 +185,8 @@ while True:
         C1_target_proportion += abs(temp_C1_proportion)/Decimal(predicted_count)
         C2_target_proportion += abs(temp_C2_proportion)/Decimal(predicted_count)
     
-    C1_balance = Decimal(client.get_asset_balance(asset='BTC')["free"])
-    C2_balance = Decimal(client.get_asset_balance(asset='USDT')["free"])
+    C1_balance = Decimal(client.get_asset_balance(asset=ticker[:3])["free"])
+    C2_balance = Decimal(client.get_asset_balance(asset=ticker[3:])["free"])
     
     C1USDT_value = C1_balance*C1USDT_rate
     C2USDT_value = C2_balance*C2USDT_rate
@@ -201,25 +206,29 @@ while True:
     
 
     
-    if C1_proportion_change > 0:
-        fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
-        
-        C1sell_quantity = round(float(C1_proportion_change*C1_balance), 5)
-        print(C1sell_quantity)
-        
-        if C1sell_quantity > minimum_quantity/C1C2_rate:
-            order_sell = client.order_market_sell(symbol='BTCUSDT', quantity=C1sell_quantity)
-            print(order_sell)
-    if C2_proportion_change > 0:
-        fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
-        
-        C2sell_quantity = round(float(C2_proportion_change*C2_balance), 5)
-        print(C2sell_quantity)
-        
-        if C2sell_quantity > minimum_quantity:
+    if abs(average_compounded_actual_change) >= trade_fees:
+        if C1_proportion_change > 0:
+            fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
+            
+            C1sell_quantity = round(float(C1_proportion_change*C1_balance), 4)
+            print(C1sell_quantity)
+            
             try:
-                order_buy = client.order_market_buy(symbol='BTCUSDT', quoteOrderQty=C2sell_quantity)
-                print(order_buy)
+                if C1sell_quantity > minimum_quantity/C1USDT_rate:
+                    order_sell = client.order_market_sell(symbol=ticker, quantity=C1sell_quantity)
+                    print(order_sell)
+            except:
+                continue
+        if C2_proportion_change > 0:
+            fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
+            
+            C2sell_quantity = round(float(C2_proportion_change*C2_balance), 4)
+            print(C2sell_quantity)
+            
+            try:
+                if C2sell_quantity > minimum_quantity/C2USDT_rate:
+                    order_buy = client.order_market_buy(symbol=ticker, quoteOrderQty=C2sell_quantity)
+                    print(order_buy)
             except:
                 continue
     
@@ -258,7 +267,7 @@ while True:
         plt.pause(0.001)
     
     
-    if counter%40 == 0:
+    if counter%40 == -1:
         input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
         target_values_train = target_values_test
         

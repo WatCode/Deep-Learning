@@ -31,7 +31,7 @@ client = Client(api_key, secret_key)
 
 
 
-ticker = "BTCUSDT"
+ticker = "ETHBTC"
 
 trade_fees = Decimal(0.0)
 
@@ -71,10 +71,10 @@ while True:
         continue
     
     previous_rates = [Decimal(element[4]) for element in C1C2_klines]
-    change_rates = [previous_rates[i+1]/previous_rates[i] for i in range(len(previous_rates)-1)]
 
     moving_average_previous_rates = [sum(previous_rates[i:i+average_size])/Decimal(average_size) for i in range(len(previous_rates)-average_size+1)]
-    moving_average_change_rates = [sum(change_rates[i:i+average_size])/Decimal(average_size) for i in range(len(change_rates)-average_size+1)]
+    
+    change_moving_average_rates = [moving_average_previous_rates[i+1]/moving_average_previous_rates[i] for i in range(len(moving_average_previous_rates)-1)]
     
     C1C2_rate = previous_rates[-1]
     
@@ -86,11 +86,11 @@ while True:
     input_values_test = []
     target_values_test = []
     
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count+1):
-        input_values_test += moving_average_change_rates[i:i+Trade_Models[0].input_count]
+    for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count+1):
+        input_values_test += change_moving_average_rates[i:i+Trade_Models[0].input_count]
     
-    for i in range(len(moving_average_change_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-        target_values_test += moving_average_change_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
+    for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
+        target_values_test += change_moving_average_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
     
     Trade_Data.load([], [], [], [], input_values_test, target_values_test)
     
@@ -122,11 +122,11 @@ while True:
     uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
     uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
     
-    step = 6
+    step = 5
 
-    for h in range(0, Trade_Models[0].input_count-predicted_count, step):
-        input_values_uncertainty = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].input_count+h*Trade_Models[0].input_count]
-        target_values_uncertainty = target_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count+h*Trade_Models[0].output_count]
+    for h in range(0, len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count, step):
+        input_values_uncertainty = input_values_test[h*Trade_Models[0].input_count:h*Trade_Models[0].input_count+Trade_Models[0].input_count]
+        target_values_uncertainty = target_values_test[h*Trade_Models[0].output_count:h*Trade_Models[0].output_count+Trade_Models[0].output_count]
         
         Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
         
@@ -144,15 +144,15 @@ while True:
         compounded_multiplier_uncertainty = Decimal(1)
         
         for i in range(predicted_count):
-            compounded_multiplier_real *= moving_average_change_rates[-Trade_Models[0].input_count+h+i]
+            compounded_multiplier_real *= change_moving_average_rates[Trade_Models[0].input_count+h+i]
             compounded_multiplier_uncertainty *= recursive_output_values_uncertainty[i]
             
-            uncertainty_level = compounded_multiplier_uncertainty-compounded_multiplier_real
+            uncertainty_level = compounded_multiplier_real-compounded_multiplier_uncertainty
             
             if uncertainty_level < 0:
-                uncertainty_values_lower[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+                uncertainty_values_lower[i] += uncertainty_level/Decimal((len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count)/step)
             if uncertainty_level > 0:
-                uncertainty_values_upper[i] += uncertainty_level/Decimal((Trade_Models[0].input_count-predicted_count)/step)
+                uncertainty_values_upper[i] += uncertainty_level/Decimal((len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count)/step)
     
     
     
