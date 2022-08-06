@@ -35,7 +35,7 @@ ticker = "BTCUSDT"
 
 minimum_quantity = Decimal(10.0)
 
-trade_fees = Decimal(0.001)
+trade_fees = Decimal(0.00)
 
 C1_balance = Decimal(0)
 C2_balance = Decimal(0)
