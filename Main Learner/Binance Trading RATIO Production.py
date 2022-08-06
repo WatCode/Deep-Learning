@@ -31,7 +31,7 @@ client = Client(api_key, secret_key)
 
 
 
-ticker = "ETHBTC"
+ticker = "BTCUSDT"
 
 minimum_quantity = Decimal(10.0)
 
@@ -81,7 +81,7 @@ while True:
     
     
     
-    if counter%1 == 0:
+    if counter%5 == 0:
         input_values_test = []
         target_values_test = []
         
@@ -210,7 +210,7 @@ while True:
         if C1_proportion_change > 0:
             fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
             
-            C1sell_quantity = round(float(C1_proportion_change*C1_balance), 4)
+            C1sell_quantity = floor(float(C1_proportion_change*C1_balance)*10000.0)/10000.0
             print(C1sell_quantity)
             
             try:
@@ -222,7 +222,7 @@ while True:
         if C2_proportion_change > 0:
             fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
             
-            C2sell_quantity = round(float(C2_proportion_change*C2_balance), 4)
+            C2sell_quantity = floor(float(C2_proportion_change*C2_balance)*10000.0)/10000.0
             print(C2sell_quantity)
             
             try:
