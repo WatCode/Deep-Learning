@@ -7,9 +7,9 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-ticker = "ETHUSDT"
+ticker = "EURUSDT"
 
-klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 days ago UTC")
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_15MINUTE, "90 days ago UTC")
 
 average_size = 10
 
@@ -19,8 +19,8 @@ moving_average_close = [sum(close_prices[i:i+average_size])/Decimal(average_size
 
 moving_average_ratio = [str(moving_average_close[i+1]/moving_average_close[i]) for i in range(len(moving_average_close)-1)]
 
-input_size = 300
-output_size = 10
+input_size = 60
+output_size = 5
 
 model_count = 1
 

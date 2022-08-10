@@ -214,26 +214,24 @@ while True:
             fees_paid += trade_fees*((C2_proportion_change*C2_balance)*C2USDT_rate)
             
             C1sell_quantity = floor(float(C1_proportion_change*C1_balance)*10000.0)/10000.0
-            print(C1sell_quantity)
             
-            try:
-                if C1sell_quantity > minimum_quantity/C1USDT_rate:
-                    order_sell = client.order_market_sell(symbol=ticker, quantity=C1sell_quantity)
-                    print(order_sell)
-            except:
-                continue
+            #try:
+            if C1sell_quantity > minimum_quantity/C1USDT_rate:
+                order_sell = client.create_order(symbol=ticker, side="SELL", type="LIMIT", timeInForce="IOC", quantity=C1sell_quantity, price=C1C2_rate)
+                print(order_sell)
+            #except:
+                #continue
         if C2_proportion_change > 0:
             fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
             
-            C2sell_quantity = floor(float(C2_proportion_change*C2_balance)*10000.0)/10000.0
-            print(C2sell_quantity)
+            C2sell_quantity = floor(float(C2_proportion_change*C2_balance/C1C2_rate)*10000.0)/10000.0
             
-            try:
-                if C2sell_quantity > minimum_quantity/C2USDT_rate:
-                    order_buy = client.order_market_buy(symbol=ticker, quoteOrderQty=C2sell_quantity)
-                    print(order_buy)
-            except:
-                continue
+            #try:
+            if C2sell_quantity > minimum_quantity/C1USDT_rate:
+                order_buy = client.create_order(symbol=ticker, side="BUY", type="LIMIT", timeInForce="IOC", quantity=C2sell_quantity, price=C1C2_rate)
+                print(order_buy)
+            #except:
+                #continue
     
     
     
