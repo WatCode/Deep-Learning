@@ -7,9 +7,9 @@ secret_key = "YU3boe3opckvNEwVvFpSEVm4JPjMheFOHIbtUDSEmQdlPn9OMhou2WWNPyQOg1yA"
 
 client = Client(api_key, secret_key)
 
-ticker = "EURUSDT"
+ticker = "BTCEUR"
 
-klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_15MINUTE, "90 days ago UTC")
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 days ago UTC")
 
 average_size = 10
 
