@@ -185,8 +185,11 @@ while True:
         C1_target_proportion += abs(temp_C1_proportion)/Decimal(predicted_count)
         C2_target_proportion += abs(temp_C2_proportion)/Decimal(predicted_count)
     
-    C1_balance = Decimal(client.get_asset_balance(asset=ticker[:3])["free"])
-    C2_balance = Decimal(client.get_asset_balance(asset=ticker[3:])["free"])
+    try:
+        C1_balance = Decimal(client.get_asset_balance(asset=ticker[:3])["free"])
+        C2_balance = Decimal(client.get_asset_balance(asset=ticker[3:])["free"])
+    except:
+        continue
     
     C1USDT_value = C1_balance*C1USDT_rate
     C2USDT_value = C2_balance*C2USDT_rate
