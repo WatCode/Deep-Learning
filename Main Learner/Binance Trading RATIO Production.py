@@ -53,7 +53,7 @@ counter = 0
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
-C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "8 hours ago UTC")
+C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "11 hours ago UTC")
 
 while True:
     temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
@@ -81,7 +81,7 @@ while True:
     
     
     
-    if counter%1 == 0:
+    if counter%5 == 0:
         input_values_test = []
         target_values_test = []
         
