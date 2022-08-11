@@ -53,7 +53,7 @@ counter = 0
 
 x_values = [i for i in range(Trade_Models[0].input_count+predicted_count)]
 
-C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "24 hours ago UTC")
+C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "8 hours ago UTC")
 
 while True:
     temp_C1C2_klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "1 minute ago UTC")
@@ -81,7 +81,7 @@ while True:
     
     
     
-    if counter%5 == 0:
+    if counter%1 == 0:
         input_values_test = []
         target_values_test = []
         
@@ -215,23 +215,23 @@ while True:
             
             C1sell_quantity = floor(float(C1_proportion_change*C1_balance)*10000.0)/10000.0
             
-            #try:
-            if C1sell_quantity > minimum_quantity/C1USDT_rate:
-                order_sell = client.create_order(symbol=ticker, side="SELL", type="LIMIT", timeInForce="IOC", quantity=C1sell_quantity, price=C1C2_rate)
-                print(order_sell)
-            #except:
-                #continue
+            try:
+                if C1sell_quantity >= minimum_quantity/C1USDT_rate:
+                    order_sell = client.create_order(symbol=ticker, side="SELL", type="MARKET", quantity=C1sell_quantity)
+                    print(order_sell)
+            except:
+                continue
         if C2_proportion_change > 0:
             fees_paid += trade_fees*((C1_proportion_change*C1_balance)*C1USDT_rate)
             
             C2sell_quantity = floor(float(C2_proportion_change*C2_balance/C1C2_rate)*10000.0)/10000.0
             
-            #try:
-            if C2sell_quantity > minimum_quantity/C1USDT_rate:
-                order_buy = client.create_order(symbol=ticker, side="BUY", type="LIMIT", timeInForce="IOC", quantity=C2sell_quantity, price=C1C2_rate)
-                print(order_buy)
-            #except:
-                #continue
+            try:
+                if C2sell_quantity >= minimum_quantity/C1USDT_rate:
+                    order_buy = client.create_order(symbol=ticker, side="BUY", type="MARKET", quantity=C2sell_quantity)
+                    print(order_buy)
+            except:
+                continue
     
     
     
@@ -268,7 +268,7 @@ while True:
         plt.pause(0.001)
     
     
-    if counter%40 == -1:
+    if counter%1 == -1:
         input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
         target_values_train = target_values_test
         
@@ -281,3 +281,5 @@ while True:
     
     counter += 1
     start_flag = False
+    
+    #sleep(1)

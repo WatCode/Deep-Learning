@@ -97,7 +97,7 @@ while True:
     recursive_output_values = [Decimal(0) for i in range(predicted_count)]
     
     for i in range(model_count):
-        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=1, pivot_value=1, auto_adjust=False)
+        Trade_Models[i].recursive_test(Trade_Data, loop_count=predicted_count, feedback_count=5, pivot_value=1, auto_adjust=False)
         
         for j in range(predicted_count):
             recursive_output_values[j] += Trade_Models[i].recursive_output_values[-predicted_count+j]/Decimal(model_count)
