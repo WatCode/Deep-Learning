@@ -44,7 +44,7 @@ fees_paid = Decimal(0)
 
 predicted_count = 15
 
-average_size = 1
+average_size = 10
 
 start_flag = True
 
