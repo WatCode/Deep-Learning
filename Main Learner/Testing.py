@@ -12,4 +12,12 @@ Data0.extractall(data_name)
 
 Model0.test(Data0)
 
+mean_error = 0
+
+for i in range(len(Data0.target_values_test)):
+    mean_error += abs((Model0.output_values[i]-Data0.target_values_test[i])/Data0.target_values_test[i])
+    
+mean_error /= len(Data0.target_values_test)
+
 print(Model0.output_values)
+print(mean_error)
