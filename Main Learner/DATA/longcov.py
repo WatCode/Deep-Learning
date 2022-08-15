@@ -4,10 +4,25 @@ filer = open("LONGCOVRAW.txt", "r").read().split("\n")
 
 lines = []
 
+duplicate_count = {}
+input_output = {}
+
 for line in filer[1:]:
     line_split = line.split(",")
     
-    lines.append(",".join(line_split[1:25]) + ":" + ",".join(line_split[25:]))
+    input_vector = ",".join(line_split[1:25])
+    output_vector = [float(i) for i in line_split[25:]]
+    
+    if input_vector in input_output:
+        duplicate_count[input_vector] += 1
+        
+        input_output[input_vector] = [input_output[input_vector][i]+output_vector[i] for i in range(len(output_vector))]
+    else:
+        input_output[input_vector] = output_vector
+        duplicate_count[input_vector] = 1
+
+for input_vector in input_output:
+    lines.append(input_vector + ":" + ",".join([str(input_output[input_vector][i]/duplicate_count[input_vector]) for i in range(len(input_output[input_vector]))]))
 
 shuffle(lines)
 
