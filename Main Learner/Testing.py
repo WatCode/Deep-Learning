@@ -19,5 +19,9 @@ for i in range(len(Data0.target_values_test)):
     
 mean_error /= len(Data0.target_values_test)
 
-print(Model0.output_values)
 print(mean_error)
+
+filew = open(model_name + "results.txt", "w")
+filew.write(",".join([str(i) for i in Data0.target_values_test]) + "\n")
+filew.write(",".join([str(i) for i in Model0.output_values]))
+filew.close()
