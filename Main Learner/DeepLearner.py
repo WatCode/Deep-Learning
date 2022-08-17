@@ -117,7 +117,7 @@ class Model_Class:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(12)]
+                self.activation_values = [4 for i in range(9)]
 
                 if softmax:
                     self.activation_values += [100]
@@ -412,6 +412,9 @@ class Data_Class:
     def __init__(self, input_count):
         self.input_count = input_count
 
+        self.stream_train = 0
+        self.stream_validate = 0
+        self.stream_test = 0
         self.line_count_train = 0
         self.line_count_validate = 0
         self.line_count_test = 0
@@ -422,6 +425,9 @@ class Data_Class:
         self.input_values_test = []
         self.target_values_test = []
 
+        self.c_stream_train = 0
+        self.c_stream_validate = 0
+        self.c_stream_test = 0
         self.c_line_count_train = 0
         self.c_line_count_validate = 0
         self.c_line_count_test = 0

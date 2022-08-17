@@ -288,8 +288,8 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
   double cycles_remaining_sum2 = zero;
   double cycles_remaining_average2 = zero;
 
-  int average_size1 = 50;
-  int average_size2 = 5;
+  int average_size1 = 10;
+  int average_size2 = 2;
 
   double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double);
   double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double);
@@ -320,11 +320,11 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
       change_coefficient = fabs(((diff_values[line_num_train]-prev_diff_values[line_num_train])/prev_diff_values[line_num_train])/((diff_train-diff_values[line_num_train])/diff_values[line_num_train]));
 
       if(diff_train > diff_values[line_num_train]){
-        change_coefficient = 0.9;
+        change_coefficient = 0.5;
       }
 
-      if(change_coefficient > 1.1){
-        change_coefficient = 1.1;
+      if(change_coefficient > 1.5){
+        change_coefficient = 1.5;
       }
 
       if(cycle > one && diff_train != diff_values[line_num_train] && diff_values[line_num_train] != prev_diff_values[line_num_train]){
@@ -358,12 +358,11 @@ void train(double min_diff, double learning_rate, int cycles, int line_count_tra
 
     if(cycle > average_size1){
       cycles_remaining_average1 = cycles_remaining_sum1/average_size1;
+	  cycles_remaining_sum1 -= prev_cycles_remaining1[0];
 
       if(cycles_remaining_average2 < cycles_remaining_average1 && cycles_remaining_average2 < one){
         minimum_reached = one;
       }
-
-      cycles_remaining_sum1 -= prev_cycles_remaining1[0];
     }
 
     if(cycle > zero){
