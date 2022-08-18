@@ -161,7 +161,7 @@ double activate(int activation_value, double x) {
 	}
 }
 
-void vectorctivate(int activation_value, int distance, int count, double *values) {
+void vectoractivate(int activation_value, int distance, int count, double *values) {
 	switch (activation_value) {
 		case 100:
 			softmax(distance, count, values);
@@ -211,7 +211,7 @@ void forward(int line_count, int line_num, int *activation_values, int *hidden_s
 			if(activation_values[layer_num] < 100) values[hidden_neuron_distance + i] = activate(activation_values[layer_num], values[hidden_neuron_distance + i]);
 		}
 
-		if(activation_values[layer_num] >= 100) vectorctivate(activation_values[layer_num], hidden_neuron_distance, current_count, values);
+		if(activation_values[layer_num] >= 100) vectoractivate(activation_values[layer_num], hidden_neuron_distance, current_count, values);
 
 		prev_neuron_distance = hidden_neuron_distance;
 		hidden_neuron_distance += current_count;
