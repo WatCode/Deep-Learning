@@ -12,6 +12,8 @@ Data0.extractall(data_name)
 
 Model0.test(Data0)
 
+Model0.output_values = [round(float(Model0.output_values[i])) for i in range(len(Model0.output_values))]
+
 mean_error = 0
 
 for i in range(len(Data0.target_values_test)):

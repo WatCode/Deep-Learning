@@ -10,8 +10,8 @@ input_output = {}
 for line in filer[1:]:
     line_split = line.split(",")
     
-    input_vector = ",".join(line_split[1:25])
-    output_vector = [float(i) for i in line_split[25:]]
+    input_vector = ",".join(line_split[1:-12])
+    output_vector = [float(i) for i in line_split[-12:]]
     
     if input_vector in input_output:
         duplicate_count[input_vector] += 1
@@ -22,7 +22,7 @@ for line in filer[1:]:
         duplicate_count[input_vector] = 1
 
 for input_vector in input_output:
-    lines.append(input_vector + ":" + ",".join([str(input_output[input_vector][i]/duplicate_count[input_vector]) for i in range(len(input_output[input_vector]))]))
+    lines.append(input_vector + ":" + ",".join([str(round(input_output[input_vector][i]/duplicate_count[input_vector])) for i in range(len(input_output[input_vector]))]))
 
 shuffle(lines)
 
