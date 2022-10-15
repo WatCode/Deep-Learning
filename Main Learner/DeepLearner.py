@@ -483,12 +483,12 @@ class Data_Class:
         finally:
             return data_input, data_target
         
-    def extractall(self, data_name):
-        data_train = self.extract(data_name + "TRAIN")
-        data_validate = self.extract(data_name + "VALIDATE")
+    def extractall(self, data_name_train, data_name_validate, data_name_test=""):
+        data_train = self.extract(data_name_train + "TRAIN")
+        data_validate = self.extract(data_name_validate + "VALIDATE")
         
         try:
-            data_test = self.extract(data_name + "TEST")
+            data_test = self.extract(data_name_test + "TEST")
         except:
             data_test = ([], [])
         finally:
