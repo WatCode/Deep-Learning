@@ -18,8 +18,6 @@ print(Model0.output_values)
 
 median_index = len(Data0.target_values_test)-int(sum(Data0.target_values_test))-1
 sorted_output_values = sorted(Model0.output_values)
-print(median_index)
-print(sorted_output_values)
 output_value_threshold = (sorted_output_values[median_index]+sorted_output_values[median_index+1])/Decimal(2)
 
 print(output_value_threshold)
