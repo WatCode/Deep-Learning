@@ -1,4 +1,4 @@
-#include "interface.h"
+#include "interfaceNEW.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,11 +173,11 @@ double varyfind(int target_offset, int shift_count, int line_count, int line_num
 	int hidden_neuron_distance = input_count + (line_count - 1) * shift_count + hidden_count;
 
 	for (int i = zero; i < output_count; i++) {
-		if(target_values[target_offset + line_num * shift_count + i] != 0) {
-			sum += fabs((target_values[target_offset + line_num * shift_count + i] - values[hidden_neuron_distance + i])/target_values[target_offset + line_num * shift_count + i]);
+		if(target_values[target_offset + i] != 0) {
+			sum += fabs((target_values[target_offset + i] - values[hidden_neuron_distance + i])/target_values[target_offset + i]);
 		}
 		else{
-			sum += fabs(target_values[target_offset + line_num * shift_count + i] - values[hidden_neuron_distance + i]);
+			sum += fabs(target_values[target_offset + i] - values[hidden_neuron_distance + i]);
 		}
 	}
 
@@ -228,7 +228,7 @@ void backward(int target_offset, int shift_count, int line_count, int line_num, 
 	hidden_weight_distance = weight_count;
 	input_neuron_distance = zero;
 
-	for (int h = zero; h < output_count; h++) derivative_sum[h] = (values[hidden_neuron_distance + h] - target_values[target_offset + line_num * shift_count + h]);
+	for (int h = zero; h < output_count; h++) derivative_sum[h] = (values[hidden_neuron_distance + h] - target_values[target_offset + h]);
 
 	for (int layer_num = layer_count+1; layer_num > zero; layer_num--) {
 		current_count = hidden_sizes[layer_num];
@@ -272,12 +272,6 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
 
   int target_offset_train;
   int target_offset_validate;
-
-  if (stream_train == 1) target_offset_train = input_count;
-  else target_offset_train = zero;
-
-  if (stream_validate == 1) target_offset_validate = input_count;
-  else target_offset_validate = zero;
   
   double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + hidden_count + output_count) * size_of_double);
   double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_train) + hidden_count + output_count) * size_of_double);
@@ -288,10 +282,10 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
   double** pointer_target_values_train;
   double** pointer_target_values_validate;
 
-  if (stream_train == 1) pointer_target_values_train = &values_train;
+  if (stream_train == 1) pointer_target_values_train = &input_values_train;
   else pointer_target_values_train = &target_values_train;
 
-  if (stream_validate == 1) pointer_target_values_validate = &values_validate;
+  if (stream_validate == 1) pointer_target_values_validate = &input_values_validate;
   else pointer_target_values_validate = &target_values_validate;
 
   double* learning_rate_values = (double*) malloc(line_count_train * size_of_double);
@@ -328,6 +322,12 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
     avg_diff_train = zero;
     avg_diff_validate = zero;
 
+	if (stream_train == 1) target_offset_train = input_count;
+	else target_offset_train = zero;
+
+	if (stream_validate == 1) target_offset_validate = input_count;
+	else target_offset_validate = zero;
+
     for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
       forward(shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
 	  backward(target_offset_train, shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, *pointer_target_values_train, weight_values, learning_rate_values[line_num_train]);
@@ -357,12 +357,18 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
 
       prev_diff_values[line_num_train] = diff_values[line_num_train];
       diff_values[line_num_train] = diff_train;
+
+	  if (stream_train == 1) target_offset_train += shift_count_train;
+	  else target_offset_train += output_count;
+
+	  if (stream_validate == 1) target_offset_validate += shift_count_validate;
+	  else target_offset_validate += output_count;
     }
 
     for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
       forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
       
-	  diff_train = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
+	  diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
 
       avg_diff_validate += diff_validate;
     }
@@ -395,12 +401,6 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
       prev_cycles_remaining2[average_size2-1] = cycles_remaining_current;
     }
 
-	if (stream_train == 1) target_offset_train += shift_count_train;
-	else target_offset_train += output_count;
-
-	if (stream_validate == 1) target_offset_validate += shift_count_validate;
-	else target_offset_validate += output_count;
-
     prev_avg_diff_train = avg_diff_train;
     prev_avg_diff_validate = avg_diff_validate;
 
@@ -421,7 +421,7 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
   free(prev_cycles_remaining2);
 }
 
-void test(int line_count, int stream, int shift_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
+void test(int stream, int shift_count, int line_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
 

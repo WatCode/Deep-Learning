@@ -117,7 +117,7 @@ class Model_Class:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]+[8]
+                self.activation_values = [4 for i in range(6)]
 
                 if softmax:
                     self.activation_values += [100]
@@ -261,7 +261,7 @@ class Model_Class:
                 self.c_learning_rate = c_double(self.learning_rate)
 
                 backup_weights_values = self.weights_values.copy()
-                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_stream_train, Data.c_shift_count_train, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_stream_test, Data.c_shift_count_test, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
                 self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
                 if "nan" in [str(value).lower() for value in self.weights_values] or self.weights_values == backup_weights_values:
@@ -276,7 +276,7 @@ class Model_Class:
             self.learning_rate *= Decimal("0." + 16*"9")
             self.c_learning_rate = c_double(self.learning_rate)
             
-        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+        clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_stream_train, Data.c_shift_count_train, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_stream_validate, Data.c_shift_count_validate, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
 
         self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
@@ -340,13 +340,17 @@ class Model_Class:
     def test(self, Data, test_mode=True):
         if test_mode:
             line_count = Data.line_count_test
-            c_line_count = Data.c_line_count_test
             
+            c_stream = Data.c_stream_test
+            c_shift_count = Data.c_shift_count_test
+            c_line_count = Data.c_line_count_test
             c_input_values = Data.c_input_values_test
         else:
             line_count = Data.line_count_validate
-            c_line_count = Data.c_line_count_validate
             
+            c_stream = Data.c_stream_validate
+            c_shift_count = Data.c_shift_count_validate
+            c_line_count = Data.c_line_count_validate
             c_input_values = Data.c_input_values_validate
             
         self.output_values = []
@@ -354,7 +358,7 @@ class Model_Class:
         self.c_output_values_seq = c_type*(line_count*self.output_count)
         self.c_output_values = self.c_output_values_seq(*self.output_values)
 
-        clib.test(c_line_count, c_input_values, self.c_output_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+        clib.test(c_stream, c_shift_count, c_line_count, c_input_values, self.c_output_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
 
         self.output_values = [Decimal(value) for value in self.c_output_values]
 
@@ -425,18 +429,18 @@ class Data_Class:
         self.input_values_test = []
         self.target_values_test = []
 
-        self.c_stream_train = 0
-        self.c_stream_validate = 0
-        self.c_stream_test = 0
-        self.c_line_count_train = 0
-        self.c_line_count_validate = 0
-        self.c_line_count_test = 0
-        self.c_input_values_train = []
-        self.c_target_values_train = []
-        self.c_input_values_validate = []
-        self.c_target_values_validate = []
-        self.c_input_values_test = []
-        self.c_target_values_test = []
+        self.c_stream_train = c_type(0)
+        self.c_stream_validate = c_type(0)
+        self.c_stream_test = c_type(0)
+        self.c_line_count_train = c_type(0)
+        self.c_line_count_validate = c_type(0)
+        self.c_line_count_test = c_type(0)
+        self.c_input_values_train = c_type*0(*[])
+        self.c_target_values_train = c_type*0(*[])
+        self.c_input_values_validate = c_type*0(*[])
+        self.c_target_values_validate = c_type*0(*[])
+        self.c_input_values_test = c_type*0(*[])
+        self.c_target_values_test = c_type*0(*[])
 
     def load(self, input_values_train, target_values_train, input_values_validate, target_values_validate, input_values_test, target_values_test):
         self.line_count_train = int(len(input_values_train)/self.input_count)
@@ -469,19 +473,25 @@ class Data_Class:
         self.c_target_values_test = c_target_values_test_seq(*target_values_test)
     
     def extract(self, data_name):
+        stream = 0
+        shift_count = self.input_count
         data_input = []
         data_target = []
 
         try:
             data_file = open("./DATA/" + data_name + ".txt", "r").read().split("\n")
-
+            
+            if data_name.startswith("STREAM"):
+                stream = 1
+                shift_count = int(data_file[0])
+            
             for data_line in data_file:
                 data_split = data_line.split(":")
 
                 data_input += [Decimal(value) for value in data_split[0].split(",")]
                 data_target += [Decimal(value) for value in data_split[1].split(",")]
         finally:
-            return data_input, data_target
+            return stream, shift_count, data_input, data_target
         
     def extractall(self, data_name_train, data_name_validate, data_name_test=""):
         data_train = self.extract(data_name_train + "TRAIN")
