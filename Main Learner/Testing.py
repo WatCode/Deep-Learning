@@ -5,12 +5,13 @@ import matplotlib.pyplot as plt
 data_name = input("Data name: ")
 model_name = input("Model name: ")
 
-Model0 = Model_Class()
-Model0.load(model_name)
+Model = Model_Class()
+Model.load(model_name)
 
-Data0 = Data_Class(Model0.input_count)
-Data0.extractall(data_name, data_name, data_name)
+Data = Data_Class(Model.input_count, Model.output_count)
 
-Model0.test(Data0)
+Data.extract(data_name + "TEST")
 
-print(Model0.output_values)
+Model.test(Data)
+
+print(Model.output_values)

@@ -173,7 +173,9 @@ class Model_Class:
             self.NModel = Model_Class()
             self.NModel.load(model_name=(self.model_name + "/NORMALISER"), bias_count=1, input_count=self.output_count, hidden_count=6, output_count=self.output_count, layer_count=4, activation_values=[4,4,4,4], min_diff=-1, learning_rate=0.00001, cycles=100, hidden_shaped=False, normaliser_depth=self.normaliser_depth-1, softmax=False)
 
-            self.NData = Data_Class(self.NModel.input_count)
+            self.NData_train = Data_Class(self.NModel.input_count, self.NModel.output_count)
+            self.NData_validate = Data_Class(self.NModel.input_count, self.NModel.output_count)
+            self.NData_test = Data_Class(self.NModel.input_count, self.NModel.output_count)
         
         if new_model:
             self.save()
@@ -242,7 +244,7 @@ class Model_Class:
 
             self.weights_values += [Decimal(values) for values in current_weights]
     
-    def train(self, Data):
+    def train(self, Data_train, Data_validate):
         if self.learning_rate == -1:
             temp_cycles = 16
             temp_c_cycles = c_int(temp_cycles)
@@ -261,7 +263,7 @@ class Model_Class:
                 self.c_learning_rate = c_double(self.learning_rate)
 
                 backup_weights_values = self.weights_values.copy()
-                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_stream_train, Data.c_shift_count_train, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_stream_test, Data.c_shift_count_test, Data.c_line_count_test, Data.c_input_values_test, Data.c_target_values_test, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
                 self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
                 if "nan" in [str(value).lower() for value in self.weights_values] or self.weights_values == backup_weights_values:
@@ -276,16 +278,15 @@ class Model_Class:
             self.learning_rate *= Decimal("0." + 16*"9")
             self.c_learning_rate = c_double(self.learning_rate)
             
-        clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data.c_stream_train, Data.c_shift_count_train, Data.c_line_count_train, Data.c_input_values_train, Data.c_target_values_train, Data.c_stream_validate, Data.c_shift_count_validate, Data.c_line_count_validate, Data.c_input_values_validate, Data.c_target_values_validate, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
-
+        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
         self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
         if self.normaliser_depth > 0:
-            self.test(Data, test_mode=False)
+            self.test(Data_validate, test_mode=False)
 
-            self.NData.load(self.output_values, Data.target_values_validate, self.output_values, Data.target_values_validate, [], [])
+            self.NData_train.load(self.output_values, Data_validate.target_values, 0, Data_validate.input_count)
 
-            self.NModel.train(self.NData)
+            self.NModel.train(self.NData_train, self.NData_train)
     
     def genetic_train(self, Data, deviation_coefficient, loop_count, pool_size):
         for i in range(loop_count):
@@ -304,7 +305,7 @@ class Model_Class:
 
                 self.test(Data, test_mode=False)
 
-                diff = varyfind(self.output_values, Data.target_values_validate)
+                diff = varyfind(self.output_values, Data.target_values)
                 diff_values.append(diff)
 
                 weights_values_set[diff] = weights_values
@@ -338,34 +339,19 @@ class Model_Class:
         self.weights_values = weights_values_sum
 
     def test(self, Data, test_mode=True):
-        if test_mode:
-            line_count = Data.line_count_test
-            
-            c_stream = Data.c_stream_test
-            c_shift_count = Data.c_shift_count_test
-            c_line_count = Data.c_line_count_test
-            c_input_values = Data.c_input_values_test
-        else:
-            line_count = Data.line_count_validate
-            
-            c_stream = Data.c_stream_validate
-            c_shift_count = Data.c_shift_count_validate
-            c_line_count = Data.c_line_count_validate
-            c_input_values = Data.c_input_values_validate
-            
         self.output_values = []
 
-        self.c_output_values_seq = c_type*(line_count*self.output_count)
+        self.c_output_values_seq = c_type*(Data.line_count*self.output_count)
         self.c_output_values = self.c_output_values_seq(*self.output_values)
 
-        clib.test(c_stream, c_shift_count, c_line_count, c_input_values, self.c_output_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+        clib.test(Data.c_stream, Data.c_shift_count, Data.c_line_count, Data.c_input_values, self.c_output_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
 
         self.output_values = [Decimal(value) for value in self.c_output_values]
 
         if self.normaliser_depth > 0 and test_mode:
-            self.NData.load([], [], [], [], self.output_values, [])
+            self.NData_test.load(self.output_values, [], 0, self.input_count)
 
-            self.NModel.test(self.NData, test_mode=True)
+            self.NModel.test(self.NData_test)
 
             self.output_values = self.NModel.output_values
 
@@ -377,26 +363,26 @@ class Model_Class:
             
             temp_coefficient_values = [Decimal(0) for i in range(self.output_count)]
             
-            for i in range(len(Data.target_values_test)):
-                if (Data.target_values_test[i]-pivot_value)*(self.output_values[i]-pivot_value) > 0:
-                    temp_coefficient_values[i%self.output_count] += abs(Data.target_values_test[i]/self.output_values[i])/Decimal(len(Data.target_values_test)/self.output_count)
+            for i in range(len(Data.target_values)):
+                if (Data.target_values[i]-pivot_value)*(self.output_values[i]-pivot_value) > 0:
+                    temp_coefficient_values[i%self.output_count] += abs(Data.target_values[i]/self.output_values[i])/Decimal(len(Data.target_values)/self.output_count)
                 else:
-                    temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values_test)/self.output_count)
+                    temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values)/self.output_count)
         
-            if len(Data.target_values_test) > 0:
+            if len(Data.target_values) > 0:
                 coefficient_values = temp_coefficient_values.copy()
         
-        self.recursive_output_values = Data.input_values_test[:self.input_count]
+        self.recursive_output_values = Data.input_values[:self.input_count]
         
-        for i in range(int(len(Data.target_values_test)/self.output_count)):
-            self.recursive_output_values += Data.target_values_test[i*self.output_count:i*self.output_count+feedback_count]
+        for i in range(int(len(Data.target_values)/self.output_count)):
+            self.recursive_output_values += Data.target_values[i*self.output_count:i*self.output_count+feedback_count]
 
-        self.recursive_output_values += Data.target_values_test[len(Data.target_values_test)-self.output_count+feedback_count:]
+        self.recursive_output_values += Data.target_values[len(Data.target_values)-self.output_count+feedback_count:]
         
-        recursive_Data = Data_Class(self.input_count)
+        recursive_Data = Data_Class(self.input_count, self.output_count)
         
         for i in range(loop_count):
-            recursive_Data.load([], [], [], [], self.recursive_output_values[-self.input_count:], [])
+            recursive_Data.load(self.recursive_output_values[-self.input_count:], [], 0, self.input_count)
             
             self.test(recursive_Data, test_mode=True)
             
@@ -413,64 +399,39 @@ class Model_Class:
 
 
 class Data_Class:
-    def __init__(self, input_count):
+    def __init__(self, input_count, output_count):
         self.input_count = input_count
+        self.output_count = output_count
 
-        self.stream_train = 0
-        self.stream_validate = 0
-        self.stream_test = 0
-        self.line_count_train = 0
-        self.line_count_validate = 0
-        self.line_count_test = 0
-        self.input_values_train = []
-        self.target_values_train = []
-        self.input_values_validate = []
-        self.target_values_validate = []
-        self.input_values_test = []
-        self.target_values_test = []
+        self.stream = 0
+        self.shift_count = input_count
+        self.line_count = 0
+        self.input_values = []
+        self.target_values = []
 
-        self.c_stream_train = c_type(0)
-        self.c_stream_validate = c_type(0)
-        self.c_stream_test = c_type(0)
-        self.c_line_count_train = c_type(0)
-        self.c_line_count_validate = c_type(0)
-        self.c_line_count_test = c_type(0)
-        self.c_input_values_train = c_type*0(*[])
-        self.c_target_values_train = c_type*0(*[])
-        self.c_input_values_validate = c_type*0(*[])
-        self.c_target_values_validate = c_type*0(*[])
-        self.c_input_values_test = c_type*0(*[])
-        self.c_target_values_test = c_type*0(*[])
+        self.c_stream = c_type(self.stream)
+        self.c_shift_count = c_type(self.shift_count)
+        self.c_line_count = c_type(self.line_count)
+        self.c_input_values = (c_type*len(self.input_values))(*self.input_values)
+        self.c_target_values = (c_type*len(self.target_values))(*self.target_values)
 
-    def load(self, input_values_train, target_values_train, input_values_validate, target_values_validate, input_values_test, target_values_test):
-        self.line_count_train = int(len(input_values_train)/self.input_count)
-        self.line_count_validate = int(len(input_values_validate)/self.input_count)
-        self.line_count_test = int(len(input_values_test)/self.input_count)
+    def load(self, input_values, target_values, stream, shift_count):
+        self.stream = stream
+        self.shift_count = shift_count
+        self.line_count = int((len(input_values)-self.input_count-self.output_count)/self.shift_count)+1
 
-        self.input_values_train = input_values_train
-        self.target_values_train = target_values_train
-        self.input_values_validate = input_values_validate
-        self.target_values_validate = target_values_validate
-        self.input_values_test = input_values_test
-        self.target_values_test = target_values_test
+        self.input_values = input_values
+        self.target_values = target_values
 
-        self.c_line_count_train = c_int(self.line_count_train)
-        self.c_line_count_validate = c_int(self.line_count_validate)
-        self.c_line_count_test = c_int(self.line_count_test)
+        self.c_stream = c_int(self.stream)
+        self.c_shift_count = c_int(self.shift_count)
+        self.c_line_count = c_int(self.line_count)
 
-        c_input_values_train_seq = c_type*len(input_values_train)
-        c_target_values_train_seq = c_type*len(target_values_train)
-        c_input_values_validate_seq = c_type*len(input_values_validate)
-        c_target_values_validate_seq = c_type*len(target_values_validate)
-        c_input_values_test_seq = c_type*len(input_values_test)
-        c_target_values_test_seq = c_type*len(target_values_test)
+        c_input_values_seq = c_type*len(self.input_values)
+        c_target_values_seq = c_type*len(self.target_values)
 
-        self.c_input_values_train = c_input_values_train_seq(*input_values_train)
-        self.c_target_values_train = c_target_values_train_seq(*target_values_train)
-        self.c_input_values_validate = c_input_values_validate_seq(*input_values_validate)
-        self.c_target_values_validate = c_target_values_validate_seq(*target_values_validate)
-        self.c_input_values_test = c_input_values_test_seq(*input_values_test)
-        self.c_target_values_test = c_target_values_test_seq(*target_values_test)
+        self.c_input_values = c_input_values_seq(*self.input_values)
+        self.c_target_values = c_target_values_seq(*self.target_values)
     
     def extract(self, data_name):
         stream = 0
@@ -484,22 +445,14 @@ class Data_Class:
             if data_name.startswith("STREAM"):
                 stream = 1
                 shift_count = int(data_file[0])
+                data_file = data_file[1:]
             
             for data_line in data_file:
                 data_split = data_line.split(":")
 
                 data_input += [Decimal(value) for value in data_split[0].split(",")]
-                data_target += [Decimal(value) for value in data_split[1].split(",")]
+                
+                if stream == 0:
+                    data_target += [Decimal(value) for value in data_split[1].split(",")]
         finally:
-            return stream, shift_count, data_input, data_target
-        
-    def extractall(self, data_name_train, data_name_validate, data_name_test=""):
-        data_train = self.extract(data_name_train + "TRAIN")
-        data_validate = self.extract(data_name_validate + "VALIDATE")
-        
-        try:
-            data_test = self.extract(data_name_test + "TEST")
-        except:
-            data_test = ([], [])
-        finally:
-            self.load(data_train[0], data_train[1], data_validate[0], data_validate[1], data_test[0], data_test[1])
+            self.load(data_input, data_target, stream, shift_count)
