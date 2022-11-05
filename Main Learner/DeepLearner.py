@@ -245,6 +245,9 @@ class Model_Class:
             self.weights_values += [Decimal(values) for values in current_weights]
     
     def train(self, Data_train, Data_validate):
+        Data_train.set_line_count(False)
+        Data_validate.set_line_count(False)
+        
         if self.learning_rate == -1:
             temp_cycles = 16
             temp_c_cycles = c_int(temp_cycles)
@@ -285,10 +288,13 @@ class Model_Class:
             self.test(Data_validate, test_mode=False)
 
             self.NData_train.load(self.output_values, Data_validate.target_values, 0, Data_validate.input_count)
+            self.NData_train.set_line_count(False)
 
             self.NModel.train(self.NData_train, self.NData_train)
     
     def genetic_train(self, Data, deviation_coefficient, loop_count, pool_size):
+        Data.set_line_count(False)
+        
         for i in range(loop_count):
             weights_values_list = []
             weights_values_set = {}
@@ -339,6 +345,8 @@ class Model_Class:
         self.weights_values = weights_values_sum
 
     def test(self, Data, test_mode=True):
+        Data.set_line_count(True)
+        
         self.output_values = []
 
         self.c_output_values_seq = c_type*(Data.line_count*self.output_count)
@@ -350,12 +358,15 @@ class Model_Class:
 
         if self.normaliser_depth > 0 and test_mode:
             self.NData_test.load(self.output_values, [], 0, self.input_count)
+            self.NData_test.set_line_count(True)
 
             self.NModel.test(self.NData_test)
 
             self.output_values = self.NModel.output_values
 
     def recursive_test(self, Data, loop_count, feedback_count, pivot_value=0, auto_adjust=False):
+        Data.set_line_count(True)
+        
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
         if auto_adjust:
@@ -383,6 +394,7 @@ class Model_Class:
         
         for i in range(loop_count):
             recursive_Data.load(self.recursive_output_values[-self.input_count:], [], 0, self.input_count)
+            recursive_Data.set_line_count(True)
             
             self.test(recursive_Data, test_mode=True)
             
@@ -418,14 +430,12 @@ class Data_Class:
     def load(self, input_values, target_values, stream, shift_count):
         self.stream = stream
         self.shift_count = shift_count
-        self.line_count = int((len(input_values)-self.input_count-self.output_count)/self.shift_count)+1
 
         self.input_values = input_values
         self.target_values = target_values
 
         self.c_stream = c_int(self.stream)
         self.c_shift_count = c_int(self.shift_count)
-        self.c_line_count = c_int(self.line_count)
 
         c_input_values_seq = c_type*len(self.input_values)
         c_target_values_seq = c_type*len(self.target_values)
@@ -456,3 +466,11 @@ class Data_Class:
                     data_target += [Decimal(value) for value in data_split[1].split(",")]
         finally:
             self.load(data_input, data_target, stream, shift_count)
+            
+    def set_line_count(self, test_mode=True):
+        if test_mode or self.stream == 0:
+            self.line_count = int((len(self.input_values)-self.input_count)/self.shift_count)+1
+        else:
+            self.line_count = int((len(self.input_values)-self.input_count-self.output_count)/self.shift_count)+1
+        
+        self.c_line_count = c_int(self.line_count)
