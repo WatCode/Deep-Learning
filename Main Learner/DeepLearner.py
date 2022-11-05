@@ -173,9 +173,9 @@ class Model_Class:
             self.NModel = Model_Class()
             self.NModel.load(model_name=(self.model_name + "/NORMALISER"), bias_count=1, input_count=self.output_count, hidden_count=6, output_count=self.output_count, layer_count=4, activation_values=[4,4,4,4], min_diff=-1, learning_rate=0.00001, cycles=100, hidden_shaped=False, normaliser_depth=self.normaliser_depth-1, softmax=False)
 
-            self.NData_train = Data_Class(self.NModel.input_count, self.NModel.output_count)
-            self.NData_validate = Data_Class(self.NModel.input_count, self.NModel.output_count)
-            self.NData_test = Data_Class(self.NModel.input_count, self.NModel.output_count)
+            self.NData_train = Data_Class()
+            self.NData_validate = Data_Class()
+            self.NData_test = Data_Class()
         
         if new_model:
             self.save()
@@ -245,8 +245,8 @@ class Model_Class:
             self.weights_values += [Decimal(values) for values in current_weights]
     
     def train(self, Data_train, Data_validate):
-        Data_train.set_line_count(False)
-        Data_validate.set_line_count(False)
+        Data_train.prepare(self.input_count, self.output_count, False)
+        Data_validate.prepare(self.input_count, self.output_count, False)
         
         if self.learning_rate == -1:
             temp_cycles = 16
@@ -287,13 +287,13 @@ class Model_Class:
         if self.normaliser_depth > 0:
             self.test(Data_validate, test_mode=False)
 
-            self.NData_train.load(self.output_values, Data_validate.target_values, 0, Data_validate.input_count)
-            self.NData_train.set_line_count(False)
+            self.NData_train.load(self.output_values, Data_validate.target_values, 0, Data_validate.output_count)
+            self.NData_train.prepare(self.output_count, self.output_count, False)
 
             self.NModel.train(self.NData_train, self.NData_train)
     
     def genetic_train(self, Data, deviation_coefficient, loop_count, pool_size):
-        Data.set_line_count(False)
+        Data.prepare(self.input_count, self.output_count, False)
         
         for i in range(loop_count):
             weights_values_list = []
@@ -345,7 +345,7 @@ class Model_Class:
         self.weights_values = weights_values_sum
 
     def test(self, Data, test_mode=True):
-        Data.set_line_count(True)
+        Data.prepare(self.input_count, self.output_count, True)
         
         self.output_values = []
 
@@ -357,15 +357,15 @@ class Model_Class:
         self.output_values = [Decimal(value) for value in self.c_output_values]
 
         if self.normaliser_depth > 0 and test_mode:
-            self.NData_test.load(self.output_values, [], 0, self.input_count)
-            self.NData_test.set_line_count(True)
+            self.NData_test.load(self.output_values, [], 0, self.output_count)
+            self.NData_test.prepare(self.output_count, self.output_count, True)
 
             self.NModel.test(self.NData_test)
 
             self.output_values = self.NModel.output_values
 
     def recursive_test(self, Data, loop_count, feedback_count, pivot_value=0, auto_adjust=False):
-        Data.set_line_count(True)
+        Data.prepare(self.input_count, self.output_count, True)
         
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
@@ -390,11 +390,11 @@ class Model_Class:
 
         self.recursive_output_values += Data.target_values[len(Data.target_values)-self.output_count+feedback_count:]
         
-        recursive_Data = Data_Class(self.input_count, self.output_count)
+        recursive_Data = Data_Class()
         
         for i in range(loop_count):
             recursive_Data.load(self.recursive_output_values[-self.input_count:], [], 0, self.input_count)
-            recursive_Data.set_line_count(True)
+            recursive_Data.prepare(self.input_count, self.output_count, True)
             
             self.test(recursive_Data, test_mode=True)
             
@@ -411,12 +411,12 @@ class Model_Class:
 
 
 class Data_Class:
-    def __init__(self, input_count, output_count):
-        self.input_count = input_count
-        self.output_count = output_count
+    def __init__(self):
+        self.input_count = 0
+        self.output_count = 0
 
         self.stream = 0
-        self.shift_count = input_count
+        self.shift_count = 0
         self.line_count = 0
         self.input_values = []
         self.target_values = []
@@ -467,7 +467,15 @@ class Data_Class:
         finally:
             self.load(data_input, data_target, stream, shift_count)
             
-    def set_line_count(self, test_mode=True):
+    def prepare(self, input_count, output_count, test_mode=True):
+        self.input_count = input_count
+        self.output_count = output_count
+        
+        if not self.stream:
+            self.shift_count = self.input_count
+            
+            self.c_shift_count = c_int(self.shift_count)
+        
         if test_mode or self.stream == 0:
             self.line_count = int((len(self.input_values)-self.input_count)/self.shift_count)+1
         else:
