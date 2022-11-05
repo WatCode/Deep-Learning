@@ -16,11 +16,14 @@ for i in range(model_count):
     Trade_Models.append(Model_Class())
     Trade_Models[i].load(model_name+str(i), min_diff=0.00000004, learning_rate=0.00000004, cycles=4)
 
-Trade_Data = Data_Class(Trade_Models[0].input_count)
+Trade_Data = Data_Class()
 
-Trade_Data_uncertainty = Data_Class(Trade_Models[0].input_count)
+Trade_Data_uncertainty = Data_Class()
 
-Trade_Data_train = Data_Class(Trade_Models[0].input_count)
+Trade_Data_train = Data_Class()
+Trade_Data_validate = Data_Class()
+
+shift_count = 1
 
 
 
@@ -81,17 +84,8 @@ while True:
     
     
     
-    if counter%5 == 0:
-        input_values_test = []
-        target_values_test = []
-        
-        for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count+1):
-            input_values_test += change_moving_average_rates[i:i+Trade_Models[0].input_count]
-        
-        for i in range(len(change_moving_average_rates)-Trade_Models[0].input_count-Trade_Models[0].output_count+1):
-            target_values_test += change_moving_average_rates[i+Trade_Models[0].input_count:i+Trade_Models[0].input_count+Trade_Models[0].output_count]
-        
-        Trade_Data.load([], [], [], [], input_values_test, target_values_test)
+    if counter%1 == 0:
+        Trade_Data.load(change_moving_average_rates[-Trade_Models[0].input_count:], [], 0, 0)
         
         recursive_output_values = [Decimal(0) for i in range(predicted_count)]
         
@@ -126,13 +120,10 @@ while True:
         uncertainty_values_lower = [Decimal(0) for i in range(predicted_count)]
         uncertainty_values_upper = [Decimal(0) for i in range(predicted_count)]
         
-        step = 4
+        step = 1
 
         for h in range(0, len(change_moving_average_rates)-Trade_Models[0].input_count+1-predicted_count, step):
-            input_values_uncertainty = input_values_test[h*Trade_Models[0].input_count:h*Trade_Models[0].input_count+Trade_Models[0].input_count]
-            target_values_uncertainty = target_values_test[h*Trade_Models[0].output_count:h*Trade_Models[0].output_count+Trade_Models[0].output_count]
-            
-            Trade_Data_uncertainty.load([], [], [], [], input_values_uncertainty, target_values_uncertainty)
+            Trade_Data_uncertainty.load(change_moving_average_rates[h*Trade_Models[0].input_count:(h+1)*Trade_Models[0].input_count], [], 0, 0)
             
             recursive_output_values_uncertainty = [Decimal(0) for i in range(predicted_count)]
             
@@ -250,7 +241,7 @@ while True:
     print("Total value generated in USDT: " + str(float(USDT_value+fees_paid)))
     print("\n")
     
-    if counter%5 == 0:
+    if counter%1 == 0:
         y_values_average = moving_average_previous_rates[-Trade_Models[0].input_count:]
         y_values_lower = []
         y_values_upper = []
@@ -268,11 +259,14 @@ while True:
         plt.pause(0.001)
     
     
-    if counter%1 == -1:
-        input_values_train = input_values_test[:-Trade_Models[0].input_count*Trade_Models[0].output_count]
-        target_values_train = target_values_test
+    if counter%10 == 0:
+        halfway_point = int(len(input_values_train)/2)-int(len(input_values_train)/2)%shift_count
         
-        Trade_Data_train.load(input_values_train[int(len(input_values_train)/2):], target_values_train[int(len(target_values_train)/2):], input_values_train[:int(len(input_values_train)/2)], target_values_train[:int(len(target_values_train)/2)], [], [])
+        input_values_train = moving_average_previous_rates[halfway_point:]
+        input_values_validate = moving_average_previous_rates[:halfway_point]
+        
+        Trade_Data_train.load(input_values_train, [], 1, shift_count)
+        Trade_Data_validate.load(input_values_validate, [], 1, shift_count)
         
         for i in range(model_count):
             Trade_Models[i].train(Trade_Data_train)

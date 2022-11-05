@@ -9,9 +9,11 @@ client = Client(api_key, secret_key)
 
 ticker = "BTCUSDT"
 
-klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "6 days ago UTC")
+klines = client.get_historical_klines(ticker, Client.KLINE_INTERVAL_1MINUTE, "60 days ago UTC")
 
 average_size = 10
+
+shift_count = 1
 
 close_prices = [Decimal(entry[4]) for entry in klines]
 
@@ -19,26 +21,20 @@ moving_average_close = [sum(close_prices[i:i+average_size])/Decimal(average_size
 
 moving_average_ratio = [str(moving_average_close[i+1]/moving_average_close[i]) for i in range(len(moving_average_close)-1)]
 
-input_size = 300
-output_size = 10
+halfway_point = int(len(moving_average_ratio)/2)-int(len(moving_average_ratio)/2)%shift_count
 
-model_count = 1
+to_write_train = ",".join(moving_average_ratio[:halfway_point])
+to_write_validate = ",".join(moving_average_ratio[halfway_point:])
+to_write_test = to_write_train+","+to_write_validate
 
-line_count = len(moving_average_ratio)-input_size-output_size
+filew_train = open("STREAM" + ticker + "RATIOTRAIN.txt", "a")
+filew_train.write(str(shift_count) + "\n" + to_write_train)
+filew_train.close()
 
-for i in range(line_count):
-    print(i)
-    model_num = floor(i/(line_count/model_count))
-    
-    to_write = ",".join(moving_average_ratio[i:i+input_size]) + ":" + ",".join(moving_average_ratio[i+input_size:i+input_size+output_size]) + "\n"
+filew_validate = open("STREAM" + ticker + "RATIOVALIDATE.txt", "a")
+filew_validate.write(str(shift_count) + "\n" + to_write_validate)
+filew_validate.close()
 
-    if i%2 == 0:
-        filew = open(ticker + "RATIO" + str(model_num) + "TRAIN.txt", "a")
-    else:
-        filew = open(ticker + "RATIO" + str(model_num) + "VALIDATE.txt", "a")
-    filew.write(to_write)
-    filew.close()
-    
-    filew = open(ticker + "RATIO" + str(model_num) + "TEST.txt", "a")
-    filew.write(to_write)
-    filew.close()
+filew_test = open("STREAM" + ticker + "RATIOTEST.txt", "a")
+filew_test.write(str(shift_count) + "\n" + to_write_test)
+filew_test.close()

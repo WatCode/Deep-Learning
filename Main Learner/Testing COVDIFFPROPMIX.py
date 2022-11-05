@@ -4,19 +4,19 @@ import matplotlib.pyplot as plt
 data_name = input("Data name: ")
 model_name = input("Model name: ")
 
-Model0 = Model_Class()
-Model0.load(model_name)
+Model = Model_Class()
+Model.load(model_name)
 
-Data0 = Data_Class(Model0.input_count)
-Data0.extractall(data_name)
+Data = Data_Class()
+Data.extract(data_name + "TEST")
 
 header_count = 1
 
-Model0.recursive_test(Data0, 200, header_count)
+Model.recursive_test(Data, 200, header_count)
 
-header_values = [[Model0.recursive_output_values[j*header_count+i] for j in range(int(len(Model0.recursive_output_values)/header_count))] for i in range(header_count)]
+header_values = [[Model.recursive_output_values[j*header_count+i] for j in range(int(len(Model.recursive_output_values)/header_count))] for i in range(header_count)]
 
-x_values = [i for i in range(int(len(Model0.recursive_output_values)/header_count))]
+x_values = [i for i in range(int(len(Model.recursive_output_values)/header_count))]
 
 #fig, axs = plt.subplots(header_count)
 

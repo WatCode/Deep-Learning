@@ -4,7 +4,7 @@ data_name = input("Data name: ")
 model_name = input("Model name: ")
 
 Model = Model_Class()
-Model.load(model_name, min_diff=0.00001, learning_rate=0.0001, cycles=100, hidden_shaped=False, normaliser_depth=0)
+Model.load(model_name, min_diff=0.00001, learning_rate=0.000001, cycles=20, hidden_shaped=False, normaliser_depth=0)
 
 Data_train = Data_Class()
 Data_validate = Data_Class()
