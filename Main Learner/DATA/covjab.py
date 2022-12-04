@@ -8,9 +8,9 @@ to_write_test = ""
 
 for i in range(len(filer)):
     line_split = filer[i].split(",")
-    line_split[5] = str(math.tan(float(line_split[5])/(180.0/math.pi)))
+    line_split[7] = str(math.tan(float(line_split[7])/(180.0/math.pi)))
     
-    if i%3 != 1:
+    if i%2 != 1:
         to_write_train += ",".join(line_split) + "\n"
     else:
         to_write_validate += ",".join(line_split) + "\n"
