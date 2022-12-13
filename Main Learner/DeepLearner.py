@@ -239,7 +239,7 @@ class Model_Class:
         self.weights_values = []
         
         for layer_num in range(self.layer_count+1):
-            current_weights = np.random.normal(Decimal(1/self.hidden_sizes_values[layer_num]), Decimal(self.hidden_sizes_values[layer_num+1]/(self.hidden_sizes_values[layer_num]**2)), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
+            current_weights = np.random.normal(Decimal(0), Decimal(0.3), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
             shuffle(current_weights)
 
             self.weights_values += [Decimal(values) for values in current_weights]
