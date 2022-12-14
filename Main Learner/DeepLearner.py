@@ -415,7 +415,7 @@ class Data_Class:
         self.input_count = 0
         self.output_count = 0
 
-        self.stream = 0
+        self.stream = False
         self.shift_count = 0
         self.line_count = 0
         self.input_values = []
@@ -444,7 +444,7 @@ class Data_Class:
         self.c_target_values = c_target_values_seq(*self.target_values)
     
     def extract(self, data_name):
-        stream = 0
+        stream = False
         shift_count = self.input_count
         data_input = []
         data_target = []
@@ -453,7 +453,7 @@ class Data_Class:
             data_file = open("./DATA/" + data_name + ".txt", "r").read().split("\n")
             
             if data_name.startswith("STREAM"):
-                stream = 1
+                stream = True
                 shift_count = int(data_file[0])
                 data_file = data_file[1:]
             
@@ -462,7 +462,7 @@ class Data_Class:
 
                 data_input += [Decimal(value) for value in data_split[0].split(",")]
                 
-                if stream == 0:
+                if not stream:
                     data_target += [Decimal(value) for value in data_split[1].split(",")]
         finally:
             self.load(data_input, data_target, stream, shift_count)
@@ -476,9 +476,9 @@ class Data_Class:
             
             self.c_shift_count = c_int(self.shift_count)
         
-        if test_mode or self.stream == 0:
-            self.line_count = int((len(self.input_values)-self.input_count)/self.shift_count)+1
+        if test_mode or not self.stream:
+            self.line_count = (len(self.input_values)-self.input_count)//self.shift_count + 1
         else:
-            self.line_count = int((len(self.input_values)-self.input_count-self.output_count)/self.shift_count)+1
+            self.line_count = (len(self.input_values)-self.input_count-self.output_count)//self.shift_count + 1
         
         self.c_line_count = c_int(self.line_count)
