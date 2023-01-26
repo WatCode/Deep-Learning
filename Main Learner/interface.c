@@ -1,3 +1,5 @@
+//Copyright (c) 2023 by Liam Watson and Watcode. All rights reserved. For licensing, contact lrwatson@uwaterloo.ca or +1 437 688 3927
+
 #include "interface.h"
 #include <math.h>
 #include <stdio.h>
@@ -118,12 +120,12 @@ void softmax(int distance, int count, double *values){
 	s = 0;
 
 	for(int i = 0; i < count; i++){
-		z = pow(e, values[distance + i]);
+		z = fabs(values[distance + i]);
 		values[distance + i] = z;
 		s += z;
 	}
 
-	for(int i = 0; i < count; i++) values[distance + i] /= s;
+	for(int i = 0; i < count; i++) values[distance + i] = fabs(values[distance + i]/s);
 }
 
 double activate(int activation_value, double x) {
@@ -304,7 +306,7 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
   double cycles_remaining_average2 = zero;
 
   int average_size1 = 10;
-  int average_size2 = 2;
+  int average_size2 = 10;
 
   double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double);
   double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double);
@@ -347,7 +349,7 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
       }
 
       if(cycle > one && diff_train != diff_values[line_num_train] && diff_values[line_num_train] != prev_diff_values[line_num_train]){
-        learning_rate_values[line_num_train] *= change_coefficient;
+        learning_rate_values[line_num_train] = learning_rate;
       }
       else{
         learning_rate_values[line_num_train] = learning_rate;

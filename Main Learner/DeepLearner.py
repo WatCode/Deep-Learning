@@ -1,3 +1,5 @@
+#Copyright (c) 2023 by Liam Watson and Watcode. All rights reserved. For licensing, contact lrwatson@uwaterloo.ca or +1 437 688 3927
+
 from random import *
 from decimal import *
 from math import *
@@ -117,7 +119,7 @@ class Model_Class:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]
+                self.activation_values = [4 for i in range(4)]+[8]
 
                 if softmax:
                     self.activation_values += [100]
@@ -239,7 +241,7 @@ class Model_Class:
         self.weights_values = []
         
         for layer_num in range(self.layer_count+1):
-            current_weights = np.random.normal(Decimal(0), Decimal(0.3), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
+            current_weights = np.random.normal(Decimal(0), Decimal(0.2), (self.hidden_sizes_values[layer_num]+self.bias_count)*self.hidden_sizes_values[layer_num+1])
             shuffle(current_weights)
 
             self.weights_values += [Decimal(values) for values in current_weights]
