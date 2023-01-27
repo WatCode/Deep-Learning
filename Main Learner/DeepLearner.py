@@ -119,7 +119,7 @@ class Model_Class:
                 self.input_count = int(input("Number of input neurons: "))
                 self.hidden_count = int(input("Number of hidden neurons: "))
                 self.output_count = int(input("Number of output neurons: "))
-                self.activation_values = [4 for i in range(6)]
+                self.activation_values = [4 for i in range(2)]+[6]
 
                 if softmax:
                     self.activation_values += [100]
@@ -366,31 +366,34 @@ class Model_Class:
 
             self.output_values = self.NModel.output_values
 
-    def recursive_test(self, Data, loop_count, feedback_count, pivot_value=0, auto_adjust=False):
+    def recursive_test(self, Data, loop_count, feedback_count, pivot_value=0, auto_adjust=False, use_target_values=False):
         Data.prepare(self.input_count, self.output_count, True)
         
         coefficient_values = [Decimal(1) for i in range(self.output_count)]
 
-        if auto_adjust:
-            self.test(Data)
+        if use_target_values:
+            if auto_adjust:
+                self.test(Data)
+                
+                temp_coefficient_values = [Decimal(0) for i in range(self.output_count)]
+                
+                for i in range(len(Data.target_values)):
+                    if (Data.target_values[i]-pivot_value)*(self.output_values[i]-pivot_value) > 0:
+                        temp_coefficient_values[i%self.output_count] += abs(Data.target_values[i]/self.output_values[i])/Decimal(len(Data.target_values)/self.output_count)
+                    else:
+                        temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values)/self.output_count)
             
-            temp_coefficient_values = [Decimal(0) for i in range(self.output_count)]
+                if len(Data.target_values) > 0:
+                    coefficient_values = temp_coefficient_values.copy()
             
-            for i in range(len(Data.target_values)):
-                if (Data.target_values[i]-pivot_value)*(self.output_values[i]-pivot_value) > 0:
-                    temp_coefficient_values[i%self.output_count] += abs(Data.target_values[i]/self.output_values[i])/Decimal(len(Data.target_values)/self.output_count)
-                else:
-                    temp_coefficient_values[i%self.output_count] += Decimal(1)/Decimal(len(Data.target_values)/self.output_count)
-        
-            if len(Data.target_values) > 0:
-                coefficient_values = temp_coefficient_values.copy()
-        
-        self.recursive_output_values = Data.input_values[:self.input_count]
-        
-        for i in range(int(len(Data.target_values)/self.output_count)):
-            self.recursive_output_values += Data.target_values[i*self.output_count:i*self.output_count+feedback_count]
+            self.recursive_output_values = Data.input_values[:self.input_count]
+            
+            for i in range(int(len(Data.target_values)/self.output_count)):
+                self.recursive_output_values += Data.target_values[i*self.output_count:i*self.output_count+feedback_count]
 
-        self.recursive_output_values += Data.target_values[len(Data.target_values)-self.output_count+feedback_count:]
+            self.recursive_output_values += Data.target_values[len(Data.target_values)-self.output_count+feedback_count:]
+        else:
+            self.recursive_output_values = Data.input_values
         
         recursive_Data = Data_Class()
         
@@ -478,7 +481,9 @@ class Data_Class:
             
             self.c_shift_count = c_int(self.shift_count)
         
-        if test_mode or not self.stream:
+        if not test_mode and self.stream:
+            self.line_count = (len(self.input_values)-self.input_count-self.output_count)//self.shift_count + 1
+        if test_mode:
             self.line_count = (len(self.input_values)-self.input_count)//self.shift_count + 1
         else:
             self.line_count = (len(self.input_values)-self.input_count-self.output_count)//self.shift_count + 1

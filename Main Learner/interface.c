@@ -276,7 +276,7 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
   int target_offset_validate;
   
   double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + hidden_count + output_count) * size_of_double);
-  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_train) + hidden_count + output_count) * size_of_double);
+  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_validate) + hidden_count + output_count) * size_of_double);
 
   memcpy(values_train, input_values_train, (input_count + ((line_count_train - 1) * shift_count_train))*size_of_double);
   memcpy(values_validate, input_values_validate, (input_count + ((line_count_validate - 1) * shift_count_validate))*size_of_double);
@@ -312,7 +312,7 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
   double cycles_remaining_average2 = zero;
 
   int average_size1 = 10;
-  int average_size2 = 10;
+  int average_size2 = 2;
 
   double* prev_cycles_remaining1 = (double*) malloc(average_size1 * size_of_double);
   double* prev_cycles_remaining2 = (double*) malloc(average_size2 * size_of_double);
@@ -350,8 +350,8 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
       if(change_coefficient > 1.01){
         change_coefficient = 1.01;
       }
-      if(change_coefficient < 0.99){
-        change_coefficient = 0.99;
+      if(change_coefficient < 0.9){
+        change_coefficient = 0.9;
       }
 	  
       if(cycle > one && diff_train != diff_values_train[line_num_train] && diff_values_train[line_num_train] != prev_diff_values_train[line_num_train]){
@@ -382,8 +382,8 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
       if(change_coefficient > 1.01){
         change_coefficient = 1.01;
       }
-      if(change_coefficient < 0.99){
-        change_coefficient = 0.99;
+      if(change_coefficient < 0.9){
+        change_coefficient = 0.9;
       }
 	  
       if(cycle > one && diff_validate != diff_values_validate[line_num_validate] && diff_values_validate[line_num_validate] != prev_diff_values_validate[line_num_validate]){
