@@ -1,0 +1,26 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "DeepLearningOptimized"
+version = "1.0.4"
+authors = [
+  { name="Liam Roan Watson", email="lrwatson@uwaterloo.ca" },
+]
+description = ""
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: Other/Proprietary License",
+    "Operating System :: OS Independent",
+]
+
+[tool.hatch.build]
+exclude = [
+  "/DeepLearningOptimized/interface.*",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/WatCode/Deep-Learning"
