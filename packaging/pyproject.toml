@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "DeepLearningOptimized"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
   { name="Liam Roan Watson", email="lrwatson@uwaterloo.ca" },
 ]

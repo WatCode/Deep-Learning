@@ -79,9 +79,7 @@ class data:
             
             self.c_shift_count = c_int(self.shift_count)
         
-        if not test_mode and self.stream:
-            self.line_count = (len(self.input_values)-self.input_count-self.output_count)//self.shift_count + 1
-        if test_mode:
+        if test_mode or not self.stream:
             self.line_count = (len(self.input_values)-self.input_count)//self.shift_count + 1
         else:
             self.line_count = (len(self.input_values)-self.input_count-self.output_count)//self.shift_count + 1
