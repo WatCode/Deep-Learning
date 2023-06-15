@@ -267,6 +267,8 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 
   double* delta_weight_values = (double*) malloc(weight_count * size_of_double);
 
+  memset(delta_weight_values, zero, weight_count * size_of_double);
+
   int max_count = zero;
 
   for (int i = zero; i < layer_count; i++) if (hidden_sizes[i+1] > max_count) max_count = hidden_sizes[i+1];
@@ -341,11 +343,6 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 	if (stream_validate == 1) target_offset_validate = input_count;
 	else target_offset_validate = zero;
 
-	if (batch_num%batch_count == zero) {
-		for (int i = zero; i < weight_count; i++) weight_values[i] += delta_weight_values[i];
-		memset(delta_weight_values, zero, weight_count * size_of_double);
-	}
-
 	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
       forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
       
@@ -379,6 +376,11 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
     }
 
     for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
+	  if (batch_num%batch_count == zero) {
+		for (int i = zero; i < weight_count; i++) weight_values[i] += delta_weight_values[i];
+		memset(delta_weight_values, zero, weight_count * size_of_double);
+	  }
+
       forward(shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
 	  backward(derivative_sum, future_sum, target_offset_train, shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, *pointer_target_values_train, weight_values, delta_weight_values, learning_rate);
 		
@@ -409,6 +411,8 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 
 	  if (stream_train == 1) target_offset_train += shift_count_train;
 	  else target_offset_train += output_count;
+
+	  batch_num++;
     }
 
     avg_learning_rate /= ((double) line_count_train + (double) line_count_validate);
@@ -447,8 +451,6 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
     printf("%.16f : %.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2, avg_learning_rate);
     
     cycle++;
-
-	batch_num++;
   }
 
   free(delta_weight_values);
