@@ -220,7 +220,7 @@ void forward(int shift_count, int line_count, int line_num, int *activation_valu
 	}
 }
 
-void backward(double* derivative_sum, double* future_sum, int target_offset, int shift_count, int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int hidden_count, int output_count, int weight_count, double *values, double *target_values, double *weight_values, double learning_rate) {
+void backward(double* derivative_sum, double* future_sum, int target_offset, int shift_count, int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int hidden_count, int output_count, int weight_count, double *values, double *target_values, double *weight_values, double *delta_weight_values, double learning_rate) {
 	int current_count, next_count, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance;
 	double part_delta;
 
@@ -247,11 +247,11 @@ void backward(double* derivative_sum, double* future_sum, int target_offset, int
 
 			for (int j = zero; j < next_count; j++) {
 				if (layer_num > one) future_sum[j] += part_delta * weight_values[hidden_weight_distance + i * next_count + j];
-				weight_values[hidden_weight_distance + i * next_count + j] -= part_delta * values[hidden_neuron_distance - next_count - input_neuron_distance + j] * learning_rate;
+				delta_weight_values[hidden_weight_distance + i * next_count + j] -= part_delta * values[hidden_neuron_distance - next_count - input_neuron_distance + j] * learning_rate;
 			}
 
 			for (int j = zero; j < bias_count; j++) {
-				weight_values[hidden_weight_distance + (i + 1) * next_count + j] -= part_delta * learning_rate;
+				delta_weight_values[hidden_weight_distance + (i + 1) * next_count + j] -= part_delta * learning_rate;
 			}
 		}
 
@@ -261,9 +261,11 @@ void backward(double* derivative_sum, double* future_sum, int target_offset, int
 	}
 }
 
-void train(double min_diff, double learning_rate, int cycles, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
+void train(double min_diff, double learning_rate, int cycles, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
+
+  double* delta_weight_values = (double*) malloc(weight_count * size_of_double);
 
   int max_count = zero;
 
@@ -321,6 +323,8 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
 
   int cycle = zero;
 
+  int batch_num = zero;
+
   for (int i = zero; i < line_count_train; i++) learning_rate_values_train[i] = learning_rate;
   for (int i = zero; i < line_count_validate; i++) learning_rate_values_validate[i] = learning_rate;
 
@@ -337,40 +341,12 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
 	if (stream_validate == 1) target_offset_validate = input_count;
 	else target_offset_validate = zero;
 
-    for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
-      forward(shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
-	  backward(derivative_sum, future_sum, target_offset_train, shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, *pointer_target_values_train, weight_values, learning_rate);
-		
-	  diff_train = varyfind(target_offset_train, shift_count_train, line_count_train, line_num_train, input_count, hidden_count, output_count, *pointer_target_values_train, values_train);
-      
-      avg_diff_train += diff_train;
+	if (batch_num%batch_count == zero) {
+		for (int i = zero; i < weight_count; i++) weight_values[i] += delta_weight_values[i];
+		memset(delta_weight_values, zero, weight_count * size_of_double);
+	}
 
-      change_coefficient = fabs(((diff_values_train[line_num_train]-prev_diff_values_train[line_num_train])/prev_diff_values_train[line_num_train])/((diff_train-diff_values_train[line_num_train])/diff_values_train[line_num_train]));
-
-      if(change_coefficient > 1.01){
-        change_coefficient = 1.01;
-      }
-      if(change_coefficient < 0.9){
-        change_coefficient = 0.9;
-      }
-	  
-      if(cycle > one && diff_train != diff_values_train[line_num_train] && diff_values_train[line_num_train] != prev_diff_values_train[line_num_train]){
-        learning_rate_values_train[line_num_train] *= change_coefficient;
-      }
-      else{
-        learning_rate_values_train[line_num_train] = initial_learning_rate;
-      }
-
-      avg_learning_rate += learning_rate_values_train[line_num_train];
-
-      prev_diff_values_train[line_num_train] = diff_values_train[line_num_train];
-      diff_values_train[line_num_train] = diff_train;
-
-	  if (stream_train == 1) target_offset_train += shift_count_train;
-	  else target_offset_train += output_count;
-    }
-
-    for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
+	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
       forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
       
 	  diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
@@ -400,6 +376,39 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
 
 	  if (stream_validate == 1) target_offset_validate += shift_count_validate;
 	  else target_offset_validate += output_count;
+    }
+
+    for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
+      forward(shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
+	  backward(derivative_sum, future_sum, target_offset_train, shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, *pointer_target_values_train, weight_values, delta_weight_values, learning_rate);
+		
+	  diff_train = varyfind(target_offset_train, shift_count_train, line_count_train, line_num_train, input_count, hidden_count, output_count, *pointer_target_values_train, values_train);
+      
+      avg_diff_train += diff_train;
+
+      change_coefficient = fabs(((diff_values_train[line_num_train]-prev_diff_values_train[line_num_train])/prev_diff_values_train[line_num_train])/((diff_train-diff_values_train[line_num_train])/diff_values_train[line_num_train]));
+
+      if(change_coefficient > 1.01){
+        change_coefficient = 1.01;
+      }
+      if(change_coefficient < 0.9){
+        change_coefficient = 0.9;
+      }
+	  
+      if(cycle > one && diff_train != diff_values_train[line_num_train] && diff_values_train[line_num_train] != prev_diff_values_train[line_num_train]){
+        learning_rate_values_train[line_num_train] *= change_coefficient;
+      }
+      else{
+        learning_rate_values_train[line_num_train] = initial_learning_rate;
+      }
+
+      avg_learning_rate += learning_rate_values_train[line_num_train];
+
+      prev_diff_values_train[line_num_train] = diff_values_train[line_num_train];
+      diff_values_train[line_num_train] = diff_train;
+
+	  if (stream_train == 1) target_offset_train += shift_count_train;
+	  else target_offset_train += output_count;
     }
 
     avg_learning_rate /= ((double) line_count_train + (double) line_count_validate);
@@ -438,7 +447,11 @@ void train(double min_diff, double learning_rate, int cycles, int stream_train, 
     printf("%.16f : %.16f : %.16f : %.16f : %.16f\n", avg_diff_train, avg_diff_validate, cycles_remaining_average1, cycles_remaining_average2, avg_learning_rate);
     
     cycle++;
+
+	batch_num++;
   }
+
+  free(delta_weight_values);
 
   free(derivative_sum);
   free(future_sum);

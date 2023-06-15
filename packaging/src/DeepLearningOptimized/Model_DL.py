@@ -276,7 +276,7 @@ class model:
                 self.c_learning_rate = c_double(self.learning_rate)
 
                 backup_weights_values = self.weights_values.copy()
-                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+                clib.train(temp_c_min_diff, self.c_learning_rate, temp_c_cycles, Data_train.c_batch_count, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
                 self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
                 if "nan" in [str(value).lower() for value in self.weights_values] or self.weights_values == backup_weights_values:
@@ -291,7 +291,7 @@ class model:
             self.learning_rate *= Decimal("0." + 16*"9")
             self.c_learning_rate = c_double(self.learning_rate)
             
-        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
+        clib.train(self.c_min_diff, self.c_learning_rate, self.c_cycles, Data_train.c_batch_count, Data_train.c_stream, Data_train.c_shift_count, Data_train.c_line_count, Data_train.c_input_values, Data_train.c_target_values, Data_validate.c_stream, Data_validate.c_shift_count, Data_validate.c_line_count, Data_validate.c_input_values, Data_validate.c_target_values, self.c_activation_values, self.c_hidden_sizes_values, self.c_layer_count, self.c_bias_count, self.c_hidden_count, self.c_weight_count, self.c_weights_values)
         self.weights_values = [Decimal(value) for value in self.c_weights_values]
 
         if self.normaliser_depth > 0:
