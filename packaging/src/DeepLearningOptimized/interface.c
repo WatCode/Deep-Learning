@@ -261,7 +261,7 @@ void backward(double* derivative_sum, double* future_sum, int target_offset, int
 	}
 }
 
-void train(double min_diff, double learning_rate, int cycles, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
+void train(double min_diff, double learning_rate, int cycles, int ignore_minimum, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
 
@@ -332,7 +332,7 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 
   avg_diff_train = min_diff;
 
-  while (avg_diff_train >= min_diff && minimum_reached == zero && (cycles == -1 || cycle < cycles)) {
+  while (avg_diff_train >= min_diff && (minimum_reached == zero || ignore_minimum == one) && (cycles == -1 || cycle < cycles)) {
     avg_learning_rate = zero;
     avg_diff_train = zero;
     avg_diff_validate = zero;
@@ -342,38 +342,6 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 
 	if (stream_validate == 1) target_offset_validate = input_count;
 	else target_offset_validate = zero;
-
-	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
-      forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
-      
-	  diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
-
-      avg_diff_validate += diff_validate;
-
-	  change_coefficient = fabs(((diff_values_validate[line_num_validate]-prev_diff_values_validate[line_num_validate])/prev_diff_values_validate[line_num_validate])/((diff_validate-diff_values_validate[line_num_validate])/diff_values_validate[line_num_validate]));
-
-      if(change_coefficient > 1.01){
-        change_coefficient = 1.01;
-      }
-      if(change_coefficient < 0.9){
-        change_coefficient = 0.9;
-      }
-	  
-      if(cycle > one && diff_validate != diff_values_validate[line_num_validate] && diff_values_validate[line_num_validate] != prev_diff_values_validate[line_num_validate]){
-        learning_rate_values_validate[line_num_validate] = learning_rate*change_coefficient;
-      }
-      else{
-        learning_rate_values_validate[line_num_validate] = initial_learning_rate;
-      }
-
-      avg_learning_rate += learning_rate_values_validate[line_num_validate];
-
-      prev_diff_values_validate[line_num_validate] = diff_values_train[line_num_validate];
-      diff_values_validate[line_num_validate] = diff_validate;
-
-	  if (stream_validate == 1) target_offset_validate += shift_count_validate;
-	  else target_offset_validate += output_count;
-    }
 
     for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
 	  if (batch_num%batch_count == zero) {
@@ -413,6 +381,38 @@ void train(double min_diff, double learning_rate, int cycles, int batch_count, i
 	  else target_offset_train += output_count;
 
 	  batch_num++;
+    }
+
+	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
+      forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
+      
+	  diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
+
+      avg_diff_validate += diff_validate;
+
+	  change_coefficient = fabs(((diff_values_validate[line_num_validate]-prev_diff_values_validate[line_num_validate])/prev_diff_values_validate[line_num_validate])/((diff_validate-diff_values_validate[line_num_validate])/diff_values_validate[line_num_validate]));
+
+      if(change_coefficient > 1.01){
+        change_coefficient = 1.01;
+      }
+      if(change_coefficient < 0.9){
+        change_coefficient = 0.9;
+      }
+	  
+      if(cycle > one && diff_validate != diff_values_validate[line_num_validate] && diff_values_validate[line_num_validate] != prev_diff_values_validate[line_num_validate]){
+        learning_rate_values_validate[line_num_validate] = learning_rate*change_coefficient;
+      }
+      else{
+        learning_rate_values_validate[line_num_validate] = initial_learning_rate;
+      }
+
+      avg_learning_rate += learning_rate_values_validate[line_num_validate];
+
+      prev_diff_values_validate[line_num_validate] = diff_values_train[line_num_validate];
+      diff_values_validate[line_num_validate] = diff_validate;
+
+	  if (stream_validate == 1) target_offset_validate += shift_count_validate;
+	  else target_offset_validate += output_count;
     }
 
     avg_learning_rate /= ((double) line_count_train + (double) line_count_validate);
