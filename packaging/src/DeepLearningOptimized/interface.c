@@ -175,7 +175,8 @@ void vectoractivate(int activation_value, int distance, int count, double *value
 
 double varyfind(int target_offset, int shift_count, int line_count, int line_num, int input_count, int hidden_count, int output_count, double *target_values, double *values) {
 	double sum = zero;
-	int hidden_neuron_distance = input_count + (line_count - 1) * shift_count + hidden_count;
+	int thread_num = line_num%thread_count;
+	int hidden_neuron_distance = input_count + (line_count - 1) * shift_count + (hidden_count + output_count) * thread_num + hidden_count;
 
 	for (int i = zero; i < output_count; i++) {
 		if(target_values[target_offset + i] != 0) {
