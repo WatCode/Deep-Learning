@@ -1,12 +1,15 @@
-//Copyright (c) 2023 by Liam Watson and Watcode. All rights reserved. For licensing, contact lrwatson@uwaterloo.ca or +1 437 688 3927
+//Copyright (c) 2023 by Liam Roan Watson and Watcode. All rights reserved. For licensing, contact lrwatson@uwaterloo.ca or +1 437 688 3927
 
 #include "interface.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 int size_of_double = sizeof(double);
+
+int thread_count = 8;
 
 double e = 2.71828182845904523536028747135266;
 double zero = 0;
@@ -186,12 +189,29 @@ double varyfind(int target_offset, int shift_count, int line_count, int line_num
 	return sum / ((double) output_count);
 }
 
-void forward(int shift_count, int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int output_count, double *values, double *weight_values) {
-	int current_count, prev_count, hidden_neuron_distance, hidden_weight_distance, prev_neuron_distance;
+void *forward(void *thread_arguments) {
+	int shift_count, line_count, line_num, *activation_values, *hidden_sizes, layer_count, bias_count, input_count, output_count;
+	double *values, *weight_values;
+
+	shift_count = thread_arguments->shift_count;
+	line_count = thread_arguments->line_count;
+	line_num = thread_arguments->line_num;
+	activation_values = thread_arguments->activation_values;
+	hidden_sizes = thread_arguments->hidden_sizes;
+	layer_count = thread_arguments->layer_count;
+	bias_count = thread_arguments->bias_count;
+	input_count = thread_arguments->input_count;
+	output_count = thread_arguments->output_count;
+	values = thread_arguments->values;
+	weight_values = thread_arguments->weight_values;
+
+	int current_count, prev_count, hidden_neuron_distance, hidden_weight_distance, prev_neuron_distance, thread_num;
 
 	prev_neuron_distance = line_num * shift_count;
 	hidden_neuron_distance = input_count + (line_count - 1) * shift_count;
 	hidden_weight_distance = zero;
+
+	thread_num = line_num%thread_count;
 
 	for (int layer_num = zero; layer_num < layer_count+1; layer_num++) {
 		current_count = hidden_sizes[layer_num+1];
@@ -218,17 +238,44 @@ void forward(int shift_count, int line_count, int line_num, int *activation_valu
 		prev_neuron_distance = hidden_neuron_distance;
 		hidden_neuron_distance += current_count;
 	}
+
+	pthread_exit(NULL);
 }
 
-void backward(double* derivative_sum, double* future_sum, int target_offset, int shift_count, int line_count, int line_num, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int input_count, int hidden_count, int output_count, int weight_count, double *values, double *target_values, double *weight_values, double *delta_weight_values, double learning_rate) {
-	int current_count, next_count, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance;
+void *backward(void *thread_arguments) {
+	int shift_count, line_count, line_num, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, max_count, target_offset, *activation_values, *hidden_sizes;
+	double learning_rate, *derivative_sum, *future_sum, *values, *target_values, *weight_values, *delta_weight_values;
+	
+	shift_count = thread_arguments->shift_count;
+	line_count = thread_arguments->line_count;
+	line_num = thread_arguments->line_num;
+	activation_values = thread_arguments->activation_values;
+	hidden_sizes = thread_arguments->hidden_sizes;
+	layer_count = thread_arguments->layer_count;
+	bias_count = thread_arguments->bias_count;
+	input_count = thread_arguments->input_count;
+	output_count = thread_arguments->output_count;
+	weight_count = thread_arguments->weight_count;
+	max_count = thread_arguments->max_count;
+	target_offset = thread_arguments->target_offset;
+	values = thread_arguments->values;
+	target_values = thread_arguments->target_values;
+	weight_values = thread_arguments->weight_values;
+	delta_weight_values = thread_arguments->delta_weight_values;
+	learning_rate = thread_arguments->learning_rate;
+	derivative_sum = thread_arguments->derivative_sum;
+	future_sum = thread_arguments->future_sum;
+
+	int current_count, next_count, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance, thread_num;
 	double part_delta;
 
 	hidden_neuron_distance = input_count + (line_count - 1) * shift_count + hidden_count;
 	hidden_weight_distance = weight_count;
 	input_neuron_distance = zero;
 
-	for (int h = zero; h < output_count; h++) derivative_sum[h] = (values[hidden_neuron_distance + h] - target_values[target_offset + h]);
+	thread_num = line_num%thread_count;
+
+	for (int h = zero; h < output_count; h++) derivative_sum[thread_num*max_count + h] = (values[hidden_neuron_distance + h] - target_values[target_offset + h]);
 
 	for (int layer_num = layer_count+1; layer_num > zero; layer_num--) {
 		current_count = hidden_sizes[layer_num];
@@ -238,15 +285,15 @@ void backward(double* derivative_sum, double* future_sum, int target_offset, int
 
 		hidden_weight_distance -= current_count * (next_count + bias_count);
 
-		if (layer_num > one) for (int h = zero; h < next_count; h++) future_sum[h] = zero;
+		if (layer_num > one) for (int h = zero; h < next_count; h++) future_sum[thread_num*max_count + h] = zero;
 
 		for (int i = zero; i < current_count; i++) {
-			part_delta = derivative_sum[i];
+			part_delta = derivative_sum[thread_num*max_count + i];
 			
 			if(activation_values[layer_num-1] < 100) part_delta *= activate(activation_values[layer_num-1]+1, values[hidden_neuron_distance + i]);
 
 			for (int j = zero; j < next_count; j++) {
-				if (layer_num > one) future_sum[j] += part_delta * weight_values[hidden_weight_distance + i * next_count + j];
+				if (layer_num > one) future_sum[thread_num*max_count + j] += part_delta * weight_values[hidden_weight_distance + i * next_count + j];
 				delta_weight_values[hidden_weight_distance + i * next_count + j] -= part_delta * values[hidden_neuron_distance - next_count - input_neuron_distance + j] * learning_rate;
 			}
 
@@ -257,8 +304,10 @@ void backward(double* derivative_sum, double* future_sum, int target_offset, int
 
 		hidden_neuron_distance -= next_count;
 
-		if (layer_num > one) for (int k = zero; k < next_count; k++) derivative_sum[k] = future_sum[k];
+		if (layer_num > one) for (int k = zero; k < next_count; k++) derivative_sum[thread_num*max_count + k] = future_sum[thread_num*max_count + k];
 	}
+
+	pthread_exit(NULL);
 }
 
 void train(double min_diff, double learning_rate, int cycles, int ignore_minimum, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
@@ -267,20 +316,20 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
 
   double* delta_weight_values = (double*) malloc(weight_count * size_of_double);
 
-  memset(delta_weight_values, zero, weight_count * size_of_double);
+  for (int i = zero; i < weight_count; i++) delta_weight_values[i] = zero;
 
   int max_count = zero;
 
   for (int i = zero; i < layer_count; i++) if (hidden_sizes[i+1] > max_count) max_count = hidden_sizes[i+1];
 
-  double* derivative_sum = (double*) malloc(max_count * size_of_double);
-  double* future_sum = (double*) malloc(max_count * size_of_double);
+  double* derivative_sum = (double*) malloc(thread_count * max_count * size_of_double);
+  double* future_sum = (double*) malloc(thread_count * max_count * size_of_double);
 
   int target_offset_train;
   int target_offset_validate;
   
-  double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + hidden_count + output_count) * size_of_double);
-  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_validate) + hidden_count + output_count) * size_of_double);
+  double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + thread_count * hidden_count + thread_count * output_count) * size_of_double);
+  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_validate) + thread_count * hidden_count + thread_count * output_count) * size_of_double);
 
   memcpy(values_train, input_values_train, (input_count + ((line_count_train - 1) * shift_count_train))*size_of_double);
   memcpy(values_validate, input_values_validate, (input_count + ((line_count_validate - 1) * shift_count_validate))*size_of_double);
@@ -332,6 +381,25 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
 
   avg_diff_train = min_diff;
 
+  struct ThreadArguments *thread_arguments = (struct ThreadArguments*) malloc(sizeof(struct ThreadArguments));
+
+  thread_arguments->activation_values = activation_values;
+  thread_arguments->hidden_sizes = hidden_sizes;
+  thread_arguments->layer_count = layer_count;
+  thread_arguments->bias_count = bias_count;
+  thread_arguments->input_count = input_count;
+  thread_arguments->output_count = output_count;
+  thread_arguments->weight_count = weight_count;
+  thread_arguments->max_count = max_count;
+  thread_arguments->weight_values = weight_values;
+  thread_arguments->delta_weight_values = delta_weight_values;
+  thread_arguments->derivative_sum = derivative_sum;
+  thread_arguments->future_sum = future_sum;
+
+  pthread_t thread_id_values[thread_count];
+
+  int line_num_train, line_num_validate;
+
   while (avg_diff_train >= min_diff && (minimum_reached == zero || ignore_minimum == one) && (cycles == -1 || cycle < cycles)) {
     avg_learning_rate = zero;
     avg_diff_train = zero;
@@ -343,76 +411,129 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
 	if (stream_validate == 1) target_offset_validate = input_count;
 	else target_offset_validate = zero;
 
-    for (int line_num_train = zero; line_num_train < line_count_train; line_num_train++) {
-	  if (batch_num%batch_count == zero) {
-		for (int i = zero; i < weight_count; i++) weight_values[i] += delta_weight_values[i];
-		memset(delta_weight_values, zero, weight_count * size_of_double);
+	thread_arguments->shift_count = shift_count_train;
+    thread_arguments->line_count = line_count_train;
+	thread_arguments->values = values_train;
+	thread_arguments->target_values = pointer_target_values_train;
+	thread_arguments->target_offset = target_offset_train;
+	thread_arguments->learning_rate = learning_rate;
+
+    for (int h = zero; h < line_count_train%thread_count+1; h++) {
+	  for (int i = zero; i < thread_count; i++) {
+		line_num_train = h * thread_count + i;
+		if (line_num_train >= line_count_train) break;
+
+	  	thread_arguments->line_num = line_num_train;
+		
+	  	pthread_create(&thread_id_values[i], NULL, forward, (void *) thread_arguments);
 	  }
 
-      forward(shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_train, weight_values);
-	  backward(derivative_sum, future_sum, target_offset_train, shift_count_train, line_count_train, line_num_train, activation_values, hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, values_train, *pointer_target_values_train, weight_values, delta_weight_values, learning_rate);
+	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
+
+	  for (int i = zero; i < thread_count; i++) {
+		line_num_train = h * thread_count + i;
+		if (line_num_train >= line_count_train) break;
+
+	  	thread_arguments->line_num = line_num_train;
 		
-	  diff_train = varyfind(target_offset_train, shift_count_train, line_count_train, line_num_train, input_count, hidden_count, output_count, *pointer_target_values_train, values_train);
-      
-      avg_diff_train += diff_train;
+		pthread_create(&thread_id_values[i], NULL, backward, (void *) thread_arguments);
+	  }
 
-      change_coefficient = fabs(((diff_values_train[line_num_train]-prev_diff_values_train[line_num_train])/prev_diff_values_train[line_num_train])/((diff_train-diff_values_train[line_num_train])/diff_values_train[line_num_train]));
+	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
 
-      if(change_coefficient > 1.01){
-        change_coefficient = 1.01;
-      }
-      if(change_coefficient < 0.9){
-        change_coefficient = 0.9;
-      }
-	  
-      if(cycle > one && diff_train != diff_values_train[line_num_train] && diff_values_train[line_num_train] != prev_diff_values_train[line_num_train]){
-        learning_rate_values_train[line_num_train] *= change_coefficient;
-      }
-      else{
-        learning_rate_values_train[line_num_train] = initial_learning_rate;
-      }
+	  for (int i = zero; i < thread_count; i++) {
+		line_num_train = h * thread_count + i;
+		if (line_num_train >= line_count_train) break;
 
-      avg_learning_rate += learning_rate_values_train[line_num_train];
+		diff_train = varyfind(target_offset_train, shift_count_train, line_count_train, line_num_train, input_count, hidden_count, output_count, *pointer_target_values_train, values_train);
+		
+		avg_diff_train += diff_train;
 
-      prev_diff_values_train[line_num_train] = diff_values_train[line_num_train];
-      diff_values_train[line_num_train] = diff_train;
+		change_coefficient = fabs(((diff_values_train[line_num_train]-prev_diff_values_train[line_num_train])/prev_diff_values_train[line_num_train])/((diff_train-diff_values_train[line_num_train])/diff_values_train[line_num_train]));
 
-	  if (stream_train == 1) target_offset_train += shift_count_train;
-	  else target_offset_train += output_count;
+		if(change_coefficient > 1.01){
+			change_coefficient = 1.01;
+		}
+		if(change_coefficient < 0.9){
+			change_coefficient = 0.9;
+		}
+		
+		if(cycle > one && diff_train != diff_values_train[line_num_train] && diff_values_train[line_num_train] != prev_diff_values_train[line_num_train]){
+			learning_rate_values_train[line_num_train] *= change_coefficient;
+		}
+		else{
+			learning_rate_values_train[line_num_train] = initial_learning_rate;
+		}
 
-	  batch_num++;
+		avg_learning_rate += learning_rate_values_train[line_num_train];
+
+		prev_diff_values_train[line_num_train] = diff_values_train[line_num_train];
+		diff_values_train[line_num_train] = diff_train;
+
+		if (stream_train == 1) target_offset_train += shift_count_train;
+		else target_offset_train += output_count;
+
+		if (batch_num%batch_count == zero) {
+			for (int i = zero; i < weight_count; i++) {
+				weight_values[i] += delta_weight_values[i];
+				delta_weight_values[i] = zero;
+		    }
+	    }
+
+		batch_num++;
+	  }
     }
 
+	thread_arguments->shift_count = shift_count_validate;
+	thread_arguments->line_count = line_count_validate;
+	thread_arguments->values = values_validate;
+	thread_arguments->target_values = pointer_target_values_validate;
+	thread_arguments->target_offset = target_offset_validate;
+
 	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
-      forward(shift_count_validate, line_count_validate, line_num_validate, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values_validate, weight_values);
-      
-	  diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
+	  for (int i = zero; i < thread_count; i++) {
+		line_num_validate = h * thread_count + i;
+		if (line_num_validate >= line_count_validate) break;
 
-      avg_diff_validate += diff_validate;
+	  	thread_arguments->line_num = line_num_validate;
+		
+	  	pthread_create(&thread_id_values[i], NULL, forward, (void *) thread_arguments);
+	  }
 
-	  change_coefficient = fabs(((diff_values_validate[line_num_validate]-prev_diff_values_validate[line_num_validate])/prev_diff_values_validate[line_num_validate])/((diff_validate-diff_values_validate[line_num_validate])/diff_values_validate[line_num_validate]));
+	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
 
-      if(change_coefficient > 1.01){
-        change_coefficient = 1.01;
-      }
-      if(change_coefficient < 0.9){
-        change_coefficient = 0.9;
-      }
-	  
-      if(cycle > one && diff_validate != diff_values_validate[line_num_validate] && diff_values_validate[line_num_validate] != prev_diff_values_validate[line_num_validate]){
-        learning_rate_values_validate[line_num_validate] = learning_rate*change_coefficient;
-      }
-      else{
-        learning_rate_values_validate[line_num_validate] = initial_learning_rate;
-      }
+	  for (int i = zero; i < thread_count; i++) {
+		line_num_validate = h * thread_count + i;
+		if (line_num_validate >= line_count_validate) break;
 
-      avg_learning_rate += learning_rate_values_validate[line_num_validate];
+		diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
 
-      prev_diff_values_validate[line_num_validate] = diff_values_train[line_num_validate];
-      diff_values_validate[line_num_validate] = diff_validate;
+		avg_diff_validate += diff_validate;
 
-	  if (stream_validate == 1) target_offset_validate += shift_count_validate;
-	  else target_offset_validate += output_count;
+		change_coefficient = fabs(((diff_values_validate[line_num_validate]-prev_diff_values_validate[line_num_validate])/prev_diff_values_validate[line_num_validate])/((diff_validate-diff_values_validate[line_num_validate])/diff_values_validate[line_num_validate]));
+
+		if(change_coefficient > 1.01){
+			change_coefficient = 1.01;
+		}
+		if(change_coefficient < 0.9){
+			change_coefficient = 0.9;
+		}
+		
+		if(cycle > one && diff_validate != diff_values_validate[line_num_validate] && diff_values_validate[line_num_validate] != prev_diff_values_validate[line_num_validate]){
+			learning_rate_values_validate[line_num_validate] = learning_rate*change_coefficient;
+		}
+		else{
+			learning_rate_values_validate[line_num_validate] = initial_learning_rate;
+		}
+
+		avg_learning_rate += learning_rate_values_validate[line_num_validate];
+
+		prev_diff_values_validate[line_num_validate] = diff_values_train[line_num_validate];
+		diff_values_validate[line_num_validate] = diff_validate;
+
+		if (stream_validate == 1) target_offset_validate += shift_count_validate;
+		else target_offset_validate += output_count;
+	  }
     }
 
     avg_learning_rate /= ((double) line_count_train + (double) line_count_validate);
@@ -452,6 +573,8 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
     
     cycle++;
   }
+
+  free(thread_arguments);
 
   free(delta_weight_values);
 
