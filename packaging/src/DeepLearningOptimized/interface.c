@@ -614,13 +614,34 @@ void test(int stream, int shift_count, int line_count, double *input_values, dou
 
   memcpy(values, input_values, (input_count + ((line_count - 1) * shift_count))*size_of_double);
 
+  struct ThreadArguments *thread_arguments = (struct ThreadArguments*) malloc(sizeof(struct ThreadArguments));
+
+  thread_arguments->activation_values = activation_values;
+  thread_arguments->hidden_sizes = hidden_sizes;
+  thread_arguments->layer_count = layer_count;
+  thread_arguments->bias_count = bias_count;
+  thread_arguments->input_count = input_count;
+  thread_arguments->hidden_count = hidden_count;
+  thread_arguments->output_count = output_count;
+  thread_arguments->weight_count = weight_count;
+  thread_arguments->weight_values = weight_values;
+  thread_arguments->shift_count = shift_count;
+  thread_arguments->line_count = line_count;
+  thread_arguments->values = values;
+
+  thread_count = one;
+
   for (int line_num = zero; line_num < line_count; line_num++) {
-    forward(shift_count, line_count, line_num, activation_values, hidden_sizes, layer_count, bias_count, input_count, output_count, values, weight_values);
+	thread_arguments->line_num = line_num;
+
+    forward((void *) thread_arguments);
 
     for (int i = zero; i < output_count; i++){
       output_values[line_num * output_count + i] = values[hidden_neuron_dist + i];
     }
   }
+
+  free(thread_arguments);
 
   free(values);
 }
