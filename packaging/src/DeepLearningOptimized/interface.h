@@ -10,6 +10,7 @@ struct ThreadArguments {
     int layer_count;
     int bias_count;
     int input_count;
+    int hidden_count;
     int output_count;
     int weight_count;
     int max_count;

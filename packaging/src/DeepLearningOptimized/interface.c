@@ -189,8 +189,10 @@ double varyfind(int target_offset, int shift_count, int line_count, int line_num
 	return sum / ((double) output_count);
 }
 
-void *forward(void *thread_arguments) {
-	int shift_count, line_count, line_num, *activation_values, *hidden_sizes, layer_count, bias_count, input_count, output_count;
+void *forward(void *thread_arguments_void) {
+	struct ThreadArguments *thread_arguments = (struct ThreadArguments*) thread_arguments_void;
+
+	int shift_count, line_count, line_num, *activation_values, *hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count;
 	double *values, *weight_values;
 
 	shift_count = thread_arguments->shift_count;
@@ -201,17 +203,18 @@ void *forward(void *thread_arguments) {
 	layer_count = thread_arguments->layer_count;
 	bias_count = thread_arguments->bias_count;
 	input_count = thread_arguments->input_count;
+	hidden_count = thread_arguments->hidden_count;
 	output_count = thread_arguments->output_count;
 	values = thread_arguments->values;
 	weight_values = thread_arguments->weight_values;
 
 	int current_count, prev_count, hidden_neuron_distance, hidden_weight_distance, prev_neuron_distance, thread_num;
 
-	prev_neuron_distance = line_num * shift_count;
-	hidden_neuron_distance = input_count + (line_count - 1) * shift_count;
-	hidden_weight_distance = zero;
-
 	thread_num = line_num%thread_count;
+
+	prev_neuron_distance = line_num * shift_count;
+	hidden_neuron_distance = input_count + (line_count - 1) * shift_count + (hidden_count + output_count) * thread_num;
+	hidden_weight_distance = zero;
 
 	for (int layer_num = zero; layer_num < layer_count+1; layer_num++) {
 		current_count = hidden_sizes[layer_num+1];
@@ -242,7 +245,9 @@ void *forward(void *thread_arguments) {
 	pthread_exit(NULL);
 }
 
-void *backward(void *thread_arguments) {
+void *backward(void *thread_arguments_void) {
+	struct ThreadArguments *thread_arguments = (struct ThreadArguments*) thread_arguments_void;
+
 	int shift_count, line_count, line_num, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, max_count, target_offset, *activation_values, *hidden_sizes;
 	double learning_rate, *derivative_sum, *future_sum, *values, *target_values, *weight_values, *delta_weight_values;
 	
@@ -254,6 +259,7 @@ void *backward(void *thread_arguments) {
 	layer_count = thread_arguments->layer_count;
 	bias_count = thread_arguments->bias_count;
 	input_count = thread_arguments->input_count;
+	hidden_count = thread_arguments->hidden_count;
 	output_count = thread_arguments->output_count;
 	weight_count = thread_arguments->weight_count;
 	max_count = thread_arguments->max_count;
@@ -269,11 +275,11 @@ void *backward(void *thread_arguments) {
 	int current_count, next_count, hidden_neuron_distance, hidden_weight_distance, input_neuron_distance, thread_num;
 	double part_delta;
 
-	hidden_neuron_distance = input_count + (line_count - 1) * shift_count + hidden_count;
+	thread_num = line_num%thread_count;
+
+	hidden_neuron_distance = input_count + (line_count - 1) * shift_count + (hidden_count + output_count) * thread_num + hidden_count;
 	hidden_weight_distance = weight_count;
 	input_neuron_distance = zero;
-
-	thread_num = line_num%thread_count;
 
 	for (int h = zero; h < output_count; h++) derivative_sum[thread_num*max_count + h] = (values[hidden_neuron_distance + h] - target_values[target_offset + h]);
 
@@ -281,7 +287,7 @@ void *backward(void *thread_arguments) {
 		current_count = hidden_sizes[layer_num];
 		next_count = hidden_sizes[layer_num-1];
 
-		if(layer_num == 1) input_neuron_distance = (line_count - line_num - 1) * shift_count;
+		if(layer_num == 1) input_neuron_distance = (line_count - line_num - 1) * shift_count + (hidden_count + output_count) * thread_num;
 
 		hidden_weight_distance -= current_count * (next_count + bias_count);
 
@@ -328,8 +334,8 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
   int target_offset_train;
   int target_offset_validate;
   
-  double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + thread_count * hidden_count + thread_count * output_count) * size_of_double);
-  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_validate) + thread_count * hidden_count + thread_count * output_count) * size_of_double);
+  double* values_train = (double*) malloc((input_count + ((line_count_train - 1) * shift_count_train) + thread_count * (hidden_count + output_count)) * size_of_double);
+  double* values_validate = (double*) malloc((input_count + ((line_count_validate - 1) * shift_count_validate) + thread_count * (hidden_count + output_count)) * size_of_double);
 
   memcpy(values_train, input_values_train, (input_count + ((line_count_train - 1) * shift_count_train))*size_of_double);
   memcpy(values_validate, input_values_validate, (input_count + ((line_count_validate - 1) * shift_count_validate))*size_of_double);
@@ -388,6 +394,7 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
   thread_arguments->layer_count = layer_count;
   thread_arguments->bias_count = bias_count;
   thread_arguments->input_count = input_count;
+  thread_arguments->hidden_count = hidden_count;
   thread_arguments->output_count = output_count;
   thread_arguments->weight_count = weight_count;
   thread_arguments->max_count = max_count;
@@ -397,6 +404,8 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
   thread_arguments->future_sum = future_sum;
 
   pthread_t thread_id_values[thread_count];
+
+  int thread_count_current;
 
   int line_num_train, line_num_validate;
 
@@ -414,36 +423,35 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
 	thread_arguments->shift_count = shift_count_train;
     thread_arguments->line_count = line_count_train;
 	thread_arguments->values = values_train;
-	thread_arguments->target_values = pointer_target_values_train;
+	thread_arguments->target_values = *pointer_target_values_train;
 	thread_arguments->target_offset = target_offset_train;
 	thread_arguments->learning_rate = learning_rate;
 
     for (int h = zero; h < line_count_train%thread_count+1; h++) {
-	  for (int i = zero; i < thread_count; i++) {
+	  for (thread_count_current = zero; thread_count_current < thread_count; thread_count_current++) if ((h * thread_count + thread_count_current) >= line_count_train) break;
+	  
+	  for (int i = zero; i < thread_count_current; i++) {
 		line_num_train = h * thread_count + i;
-		if (line_num_train >= line_count_train) break;
 
 	  	thread_arguments->line_num = line_num_train;
 		
 	  	pthread_create(&thread_id_values[i], NULL, forward, (void *) thread_arguments);
 	  }
 
-	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
+	  for (int i = zero; i < thread_count_current; i++) pthread_join(thread_id_values[i], NULL);
 
-	  for (int i = zero; i < thread_count; i++) {
+	  for (int i = zero; i < thread_count_current; i++) {
 		line_num_train = h * thread_count + i;
-		if (line_num_train >= line_count_train) break;
 
 	  	thread_arguments->line_num = line_num_train;
 		
 		pthread_create(&thread_id_values[i], NULL, backward, (void *) thread_arguments);
 	  }
 
-	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
+	  for (int i = zero; i < thread_count_current; i++) pthread_join(thread_id_values[i], NULL);
 
-	  for (int i = zero; i < thread_count; i++) {
+	  for (int i = zero; i < thread_count_current; i++) {
 		line_num_train = h * thread_count + i;
-		if (line_num_train >= line_count_train) break;
 
 		diff_train = varyfind(target_offset_train, shift_count_train, line_count_train, line_num_train, input_count, hidden_count, output_count, *pointer_target_values_train, values_train);
 		
@@ -487,24 +495,24 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
 	thread_arguments->shift_count = shift_count_validate;
 	thread_arguments->line_count = line_count_validate;
 	thread_arguments->values = values_validate;
-	thread_arguments->target_values = pointer_target_values_validate;
+	thread_arguments->target_values = *pointer_target_values_validate;
 	thread_arguments->target_offset = target_offset_validate;
 
-	for(int line_num_validate = zero; line_num_validate < line_count_validate; line_num_validate++){
-	  for (int i = zero; i < thread_count; i++) {
+	for (int h = zero; h < line_count_validate%thread_count+1; h++) {
+	  for (thread_count_current = zero; thread_count_current < thread_count; thread_count_current++) if ((h * thread_count + thread_count_current) >= line_count_validate) break;
+
+	  for (int i = zero; i < thread_count_current; i++) {
 		line_num_validate = h * thread_count + i;
-		if (line_num_validate >= line_count_validate) break;
 
 	  	thread_arguments->line_num = line_num_validate;
 		
 	  	pthread_create(&thread_id_values[i], NULL, forward, (void *) thread_arguments);
 	  }
 
-	  for (int i = zero; i < thread_count; i++) pthread_join(thread_id_values[i], NULL);
+	  for (int i = zero; i < thread_count_current; i++) pthread_join(thread_id_values[i], NULL);
 
-	  for (int i = zero; i < thread_count; i++) {
+	  for (int i = zero; i < thread_count_current; i++) {
 		line_num_validate = h * thread_count + i;
-		if (line_num_validate >= line_count_validate) break;
 
 		diff_validate = varyfind(target_offset_validate, shift_count_validate, line_count_validate, line_num_validate, input_count, hidden_count, output_count, *pointer_target_values_validate, values_validate);
 
