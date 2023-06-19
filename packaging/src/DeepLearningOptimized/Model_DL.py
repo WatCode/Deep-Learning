@@ -16,12 +16,12 @@ c_type = c_double
 mydir = str(pathlib.Path(__file__).parent.resolve())
 
 if os.system("nvcc --version") == 0:
-    clib = CDLL(mydir + "\\deepCUDA.dll")
+    clib = WinDLL(mydir + "\\deepCUDA.dll", winmode=1)
     
     c_type = c_float
 elif os.name == "nt":
     os.system("cls")
-    clib = CDLL(mydir + "\\deepC.dll")
+    clib = WinDLL(mydir + "\\deepC.dll", winmode=1)
 else:
     os.system("clear")
     clib = CDLL(mydir + "/deepC.so")
