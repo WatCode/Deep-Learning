@@ -7,6 +7,29 @@
 #include <string.h>
 #include <pthread.h>
 
+struct ThreadArguments {
+    int shift_count;
+    int line_count;
+    int line_num;
+    int layer_count;
+    int bias_count;
+    int input_count;
+    int hidden_count;
+    int output_count;
+    int weight_count;
+    int max_count;
+    int target_offset;
+    int *activation_values;
+    int *hidden_sizes;
+    double learning_rate;
+    double *values;
+    double *target_values;
+    double *weight_values;
+    double *delta_weight_values;
+    double *derivative_sum;
+    double *future_sum;
+};
+
 int size_of_double = sizeof(double);
 
 int thread_count = 8;
@@ -191,6 +214,7 @@ double varyfind(int target_offset, int shift_count, int line_count, int line_num
 }
 
 void *forward(void *thread_arguments_void) {
+	printf("forward\n");
 	struct ThreadArguments *thread_arguments = (struct ThreadArguments*) thread_arguments_void;
 
 	int shift_count, line_count, line_num, *activation_values, *hidden_sizes, layer_count, bias_count, input_count, hidden_count, output_count;
@@ -247,6 +271,7 @@ void *forward(void *thread_arguments_void) {
 }
 
 void *backward(void *thread_arguments_void) {
+	printf("backward\n");
 	struct ThreadArguments *thread_arguments = (struct ThreadArguments*) thread_arguments_void;
 
 	int shift_count, line_count, line_num, layer_count, bias_count, input_count, hidden_count, output_count, weight_count, max_count, target_offset, *activation_values, *hidden_sizes;
@@ -317,10 +342,11 @@ void *backward(void *thread_arguments_void) {
 	pthread_exit(NULL);
 }
 
-void train(double min_diff, double learning_rate, int cycles, int ignore_minimum, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
+__declspec(dllexport) void train(double min_diff, double learning_rate, int cycles, int ignore_minimum, int batch_count, int stream_train, int shift_count_train, int line_count_train, double *input_values_train, double *target_values_train, int stream_validate, int shift_count_validate, int line_count_validate, double *input_values_validate, double *target_values_validate, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values) {
+  printf("train\n");
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
-
+  
   double* delta_weight_values = (double*) malloc(weight_count * size_of_double);
 
   for (int i = zero; i < weight_count; i++) delta_weight_values[i] = zero;
@@ -606,7 +632,7 @@ void train(double min_diff, double learning_rate, int cycles, int ignore_minimum
   free(prev_cycles_remaining2);
 }
 
-void test(int stream, int shift_count, int line_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
+__declspec(dllexport) void test(int stream, int shift_count, int line_count, double *input_values, double *output_values, int *activation_values, int *hidden_sizes, int layer_count, int bias_count, int hidden_count, int weight_count, double *weight_values){
   int input_count = hidden_sizes[0];
   int output_count = hidden_sizes[layer_count+1];
 
