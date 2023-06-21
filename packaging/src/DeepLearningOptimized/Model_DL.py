@@ -21,7 +21,7 @@ if os.system("nvcc --version") == 0:
     c_type = c_float
 elif os.name == "nt":
     os.system("cls")
-    clib = CDLL(mydir + "\\deepC.dll")
+    clib = CDLL(mydir + "\\deepC.dll", winmode=1)
 else:
     os.system("clear")
     clib = CDLL(mydir + "/deepC.so")
