@@ -74,7 +74,7 @@ class data:
         finally:
             self.load(data_input, data_target, stream, shift_count)
             
-    def prepare(self, input_count, output_count, test_mode=True, batch_count=-1):
+    def prepare(self, input_count, output_count, test_mode=True, batch_count=32):
         self.input_count = input_count
         self.output_count = output_count
         
@@ -90,7 +90,6 @@ class data:
         
         self.c_line_count = c_int(self.line_count)
         
-        if batch_count == -1:
-            self.batch_count = self.line_count
+        self.batch_count = self.line_count
         
         self.c_batch_count = c_int(self.batch_count)

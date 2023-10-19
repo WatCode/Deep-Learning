@@ -7,7 +7,7 @@ from ctypes import *
 import numpy as np
 import os
 import pathlib
-from DeepLearningOptimized import Data_DL
+import Data_DL
 
 getcontext().prec = 64
 
@@ -21,7 +21,7 @@ if os.system("nvcc --version") == 0:
     c_type = c_float
 elif os.name == "nt":
     os.system("cls")
-    clib = CDLL(mydir + "\\deepC.dll", winmode=1)
+    clib = CDLL(mydir + "\\deepC.dll")
 else:
     os.system("clear")
     clib = CDLL(mydir + "/deepC.so")
